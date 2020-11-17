@@ -8,6 +8,15 @@ def resizeImg(image, location):
     compressed = image.resize((10,10),Image.ANTIALIAS) #518,345
     compressed.save(location, optimize=True, quality=95)
 
+def createGreyscale(location):
+    """Create and save greyscale version of specified folder of images."""
+    for filename in glob.glob(location):
+        with open(os.path.join(os.getcwd(), filename), "r") as f:
+            img = Image.open(filename)
+            img = img.convert("L")
+            print(filename[0:-4]+"_grey.jpg")
+            img.save(filename[0:-4]+"_grey.jpg")
+
 
 def loadAllImages(location):
     """Iterate over all images in specified location,
@@ -22,6 +31,10 @@ def loadAllImages(location):
 
 
 def slideWindow(image, window):
+    """Notes for tomorrow:
+        - currently just slides along and reads each pixel values
+        - ignores edge pixels
+        - todo: features -> gp"""
     # get image size
     width, height = (10,10)#image.size
     window_x, window_y = window
@@ -31,23 +44,25 @@ def slideWindow(image, window):
     x = width - buf_x
     y = height - buf_y
 
-    print(buf_x,buf_y,x,y)
+    # print(buf_x,buf_y,x,y)
 
     #TODO: iterate without index, grey mode
     for i in range(buf_x, x):
         for j in range(buf_y, y):
-            sum = [0,0,0]
+            # sum = [0,0,0]
+            sum = 0
             for k in range(-buf_x, buf_x+1):
                 for l in range(-buf_y, buf_y+1):
                     # print("(",i+k,", ", j+l,")", end=' ', sep='')
-                    rgb = image[i+k, j+l] # each pixel value
-                    sum[0] += rgb[0]
-                    sum[1] += rgb[1]
-                    sum[2] += rgb[2]
-            avg = (sum[0]/(window_x*window_y), sum[1]/(window_x*window_y), sum[2]/(window_x*window_y))
+                    # rgb = image[i+k, j+l] # each pixel value
+                    grey = image[i+k, j+l]
+                    sum += grey
+            #         sum[0] += rgb[0]
+            #         sum[1] += rgb[1]
+            #         sum[2] += rgb[2]
+            # avg = (sum[0]/(window_x*window_y), sum[1]/(window_x*window_y), sum[2]/(window_x*window_y))
+            avg = sum/(window_x*window_y)
             print(i,j, sum, avg)
-
-            # print(img1_pixels[i,j])
 
 
 if __name__ == "__main__":
@@ -60,8 +75,10 @@ if __name__ == "__main__":
     # resizeImg(img2, "images/compressed/tiny2.jpg")
     # resizeImg(img3, "images/compressed/tiny3.jpg")
 
+    # createGreyscale("images/compressed/tiny*.jpg")
+
     # load pixel values of all images
-    imgs = loadAllImages("images/compressed/tiny*.jpg")
+    imgs = loadAllImages("images/compressed/tiny*_grey.jpg")
 
     #get image size - NOTE: all images same size
     #
