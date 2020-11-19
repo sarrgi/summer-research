@@ -116,6 +116,12 @@ def protectedDiv(left, right):
     except:
         return 0
 
+def fitnessFunction():
+    """
+    TODO
+        - read paper and understand whats going on
+    """
+    return 0
 
 def codeNode():
     """
@@ -166,7 +172,25 @@ def gpProcess(terminal_set):
     creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMax)
 
     toolbox = base.Toolbox()
-    
+    # TOOO: setUpToolBox()
+    toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=1, max_=2) #TODO what min/max are?
+    toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr)
+    # TODO: why?
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.register("compile", gp.compile, pset=pset)
+
+     # TODO: fitnessFunction method
+     toolbox.register("evaluate", fitnessFunction, features=train_features,targets=train_targets) # todo: train target?
+     toolbox.register("select", tools.selTournament, tournsize=7)
+     toolbox.register("mate", gp.cxOnePoint) #TODO verify this is best
+     toolbox.register("expr_mut", gp.genFull, min_ = 0, max_ = 2) #TODO half and half?
+     toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset = pset) #TODO ????
+
+     # set max height (TODO: verify min height)
+     toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
+     toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
+
+
 
 
 
