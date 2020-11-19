@@ -13,13 +13,17 @@ from deap import gp
 
 
 def resizeImg(image, location, dimensions):
-    """Resize an image to (x,y) dimensions, and save it to a specified location."""
+    """
+    Resize an image to (x,y) dimensions, and save it to a specified location.
+    """
     compressed = image.resize(dimensions,Image.ANTIALIAS) #518,345
     compressed.save(location, optimize=True, quality=95)
 
 
 def createGreyscale(location):
-    """Create and save greyscale version of specified folder of images."""
+    """
+    Create and save greyscale version of specified folder of images.
+    """
     for filename in glob.glob(location):
         with open(os.path.join(os.getcwd(), filename), "r") as f:
             img = Image.open(filename)
@@ -28,7 +32,9 @@ def createGreyscale(location):
 
 
 def getDimensions(location):
-    """Return the width and height of the first found image in a loction."""
+    """
+    Return the width and height of the first found image in a loction.
+    """
     for filename in glob.glob(location):
         with open(os.path.join(os.getcwd(), filename), "r") as f:
             img = Image.open(filename)
@@ -39,8 +45,9 @@ def getDimensions(location):
 
 
 def loadAllImages(location):
-    """Iterate over all images in specified location,
-       open and return them inside a list"""
+    """
+    Iterate over all images in specified location, open and return them inside a list.
+    """
     img_arr = []
     for filename in glob.glob(location):
         with open(os.path.join(os.getcwd(), filename), "r") as f:
@@ -51,7 +58,9 @@ def loadAllImages(location):
 
 
 def mergeInputData(dataList, targetList):
-    """Merge two lists of x different classes into a single data list and single target list."""
+    """
+    Merge two lists of x different classes into a single data list and single target list.
+    """
     data_arr = itertools.chain.from_iterable(dataList)
     target_arr = itertools.chain.from_iterable(targetList)
     return list(data_arr), list(target_arr)
@@ -59,10 +68,12 @@ def mergeInputData(dataList, targetList):
 
 
 def slideWindow(image, window, img_dimensions):
-    """Notes for tomorrow:
-        - currently just slides along and reads each pixel values
+    """
+    Notes:
+        - currently just slides along and creates the terminal set for each window
         - ignores edge pixels
-        - todo: features -> gp"""
+        - todo: features -> gp
+    """
     # get image size
     width, height = img_dimensions
     window_x, window_y = window
@@ -78,22 +89,84 @@ def slideWindow(image, window, img_dimensions):
     for i in range(buf_x, x):
         for j in range(buf_y, y):
             # sum = [0,0,0]
-            sum = 0
+            terminal_set = []
             for k in range(-buf_x, buf_x+1):
                 for l in range(-buf_y, buf_y+1):
+                    terminal_set.append(image[i+k, j+l])
                     # print("(",i+k,", ", j+l,")", end=' ', sep='')
                     # rgb = image[i+k, j+l] # each pixel value
-                    grey = image[i+k, j+l]
-                    sum += grey
-            #         sum[0] += rgb[0]
-            #         sum[1] += rgb[1]
-            #         sum[2] += rgb[2]
+                    # sum[0] += rgb[0]
+                    # sum[1] += rgb[1]
+                    # sum[2] += rgb[2]
+
             # avg = (sum[0]/(window_x*window_y), sum[1]/(window_x*window_y), sum[2]/(window_x*window_y))
-            avg = sum/(window_x*window_y)
-            print(i,j, sum, avg)
+            # print(i,j, sum, avg)
+            # print(i, j, terminal_set)
+            gpProcess(terminal_set)
 
 
 
+def protectedDiv(left, right):
+    """
+    Performs regular division, if divide by 0 issues then returns 0
+    (Using 0 (and not 1) as this is specified by GP-criptor paper.
+    """
+    try:
+        return left / right
+    except:
+        return 0
+
+
+def codeNode():
+    """
+    TODO:
+        - generate binary code at each position in sliding window
+        - is root node of gp tree
+        - collects results of children nodes and converts them to binary
+            - if x < 0 then 0, else (if x >= 0) then 1
+            - converts these results into a binary pattern
+            - binary length will be of 2^code_children
+    """
+
+    # pseudocode?
+    """
+        binary_string = ""
+        for n in children:
+            - evaluate(n)
+            - convert evaluation to binary
+            - binary_string.append(conversion)
+    """
+    return -1
+
+
+def gpProcess(terminal_set):
+    """
+    TODO
+        - toolbox
+            - copy base layout from 307
+            - define the fitness function
+        - paper recommendations
+            - keep as stronglytped
+            - crossover = 0.8, mutation = 0.19, reproduction = 0.01
+            - tree depth (2-10)
+            - termination: fitness of 0 (ideal) is found or 30 generations have passed
+    """
+    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(int, len(terminal_set)), str, prefix='ARG') # TODO
+
+    pset.addPrimitive(operator.add, [int, int], int)
+    pset.addPrimitive(operator.sub, [int, int], int)
+    pset.addPrimitive(operator.mul, [int, int], int)
+    pset.addPrimitive(protectedDiv, [int, int], int)
+
+    """
+        potential approach? -> creator.create(root=codeNode())
+    """
+    # creates fitness and individual classes
+    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+    creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMax)
+
+    toolbox = base.Toolbox()
+    
 
 
 
@@ -142,6 +215,6 @@ if __name__ == "__main__":
     )
 
 
-    # window = (5,5)
-    # for i in imgs:
-    #     slideWindow(i, window, (width,height))
+    window = (5,5)
+    for i in train_data:
+        slideWindow(i, window, (width,height))
