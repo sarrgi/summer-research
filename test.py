@@ -3,9 +3,16 @@ import os
 from math import floor
 from PIL import Image
 
-def resizeImg(image, location):
-    """Resize image, note: all originals currently 5184x3456"""
-    compressed = image.resize((10,10),Image.ANTIALIAS) #518,345
+from deap import algorithms
+from deap import base
+from deap import creator
+from deap import tools
+from deap import gp
+
+
+def resizeImg(image, location, dimensions):
+    """Resize an image to (x,y) dimensions, and save it to a specified location."""
+    compressed = image.resize(dimensions,Image.ANTIALIAS) #518,345
     compressed.save(location, optimize=True, quality=95)
 
 def createGreyscale(location):
@@ -14,9 +21,18 @@ def createGreyscale(location):
         with open(os.path.join(os.getcwd(), filename), "r") as f:
             img = Image.open(filename)
             img = img.convert("L")
-            print(filename[0:-4]+"_grey.jpg")
-            img.save(filename[0:-4]+"_grey.jpg")
+            img.save(filename[0:-5]+"_grey.jpg") #note 5 as ".jpeg", likely change for actual data
 
+
+def getDimensions(location):
+    """Return the width and height of the first found image in a loction."""
+    for filename in glob.glob(location):
+        with open(os.path.join(os.getcwd(), filename), "r") as f:
+            img = Image.open(filename)
+            # return dimensions of first found image
+            return img.size
+    # error state
+    return -1,-1
 
 def loadAllImages(location):
     """Iterate over all images in specified location,
@@ -30,13 +46,13 @@ def loadAllImages(location):
     return img_arr
 
 
-def slideWindow(image, window):
+def slideWindow(image, window, img_dimensions):
     """Notes for tomorrow:
         - currently just slides along and reads each pixel values
         - ignores edge pixels
         - todo: features -> gp"""
     # get image size
-    width, height = (10,10)#image.size
+    width, height = img_dimensions
     window_x, window_y = window
     # get sizes to iterate window over
     buf_x = floor(window_x/2)
@@ -66,23 +82,23 @@ def slideWindow(image, window):
 
 
 if __name__ == "__main__":
-    # img1 = Image.open('images/MNZ_Oyster_0034.jpg')
-    # img2 = Image.open('images/MNZ_Oyster_0043.jpg')
-    # img3 = Image.open('images/MNZ_Oyster_0061.jpg')
-    #
-    # # # resize and save images
-    # resizeImg(img1, "images/compressed/tiny1.jpg")
-    # resizeImg(img2, "images/compressed/tiny2.jpg")
-    # resizeImg(img3, "images/compressed/tiny3.jpg")
-
-    # createGreyscale("images/compressed/tiny*.jpg")
-
     # load pixel values of all images
-    imgs = loadAllImages("images/compressed/tiny*_grey.jpg")
+    # imgs = loadAllImages("images/compressed/tiny*_grey.jpg")
+
+    # NOTE: all images appear to be 224x224
+    jute = loadAllImages("images/archive/crop_images/jute/*.jpg")
+    maize = loadAllImages("images/archive/crop_images/maize/*.jpg")
+    rice = loadAllImages("images/archive/crop_images/rice/*.jpg")
+    sugarcane = loadAllImages("images/archive/crop_images/sugarcane/*.jpg")
+    wheat = loadAllImages("images/archive/crop_images/wheat/*.jpg")
+
+    width, height = getDimensions("images/archive/crop_images/maize/*.jpg")
+    print(width, height)
+
 
     #get image size - NOTE: all images same size
     #
 
-    window = (5,5)
-    for i in imgs:
-        slideWindow(i, (5,5))
+    # window = (5,5)
+    # for i in imgs:
+    #     slideWindow(i, window, (width,height))
