@@ -1,5 +1,7 @@
 import glob
 import os
+import itertools
+import operator
 from math import floor
 from PIL import Image
 
@@ -14,6 +16,7 @@ def resizeImg(image, location, dimensions):
     """Resize an image to (x,y) dimensions, and save it to a specified location."""
     compressed = image.resize(dimensions,Image.ANTIALIAS) #518,345
     compressed.save(location, optimize=True, quality=95)
+
 
 def createGreyscale(location):
     """Create and save greyscale version of specified folder of images."""
@@ -34,6 +37,7 @@ def getDimensions(location):
     # error state
     return -1,-1
 
+
 def loadAllImages(location):
     """Iterate over all images in specified location,
        open and return them inside a list"""
@@ -44,6 +48,14 @@ def loadAllImages(location):
             pix = img.load()
             img_arr.append(pix)
     return img_arr
+
+
+def mergeInputData(dataList, targetList):
+    """Merge two lists of x different classes into a single data list and single target list."""
+    data_arr = itertools.chain.from_iterable(dataList)
+    target_arr = itertools.chain.from_iterable(targetList)
+    return list(data_arr), list(target_arr)
+
 
 
 def slideWindow(image, window, img_dimensions):
@@ -81,23 +93,54 @@ def slideWindow(image, window, img_dimensions):
             print(i,j, sum, avg)
 
 
-if __name__ == "__main__":
-    # load pixel values of all images
-    # imgs = loadAllImages("images/compressed/tiny*_grey.jpg")
 
-    # NOTE: all images appear to be 224x224
+
+
+
+if __name__ == "__main__":
+    # load all images
     jute = loadAllImages("images/archive/crop_images/jute/*.jpg")
     maize = loadAllImages("images/archive/crop_images/maize/*.jpg")
     rice = loadAllImages("images/archive/crop_images/rice/*.jpg")
     sugarcane = loadAllImages("images/archive/crop_images/sugarcane/*.jpg")
     wheat = loadAllImages("images/archive/crop_images/wheat/*.jpg")
 
+    # create target lists for all images
+    jute_targets = ["jute"] * len(jute)
+    maize_targets = ["maize"] * len(maize)
+    rice_targets = ["rice"] * len(rice)
+    sugarcane_targets = ["sugarcane"] * len(sugarcane)
+    wheat_targets = ["wheat"] * len(wheat)
+
+    # get image dimensions - NOTE: all images appear to be 224x224
     width, height = getDimensions("images/archive/crop_images/maize/*.jpg")
-    print(width, height)
 
+    # split into test and train
+    # note: only getting first two images of each class for training
+    jute_train = jute[0:2]
+    maize_train = maize[0:2]
+    rice_train = rice[0:2]
+    sugarcane_train = sugarcane[0:2]
+    wheat_train = wheat[0:2]
 
-    #get image size - NOTE: all images same size
-    #
+    jute_test = jute[2:]
+    maize_test = maize[2:]
+    rice_test = rice[2:]
+    sugarcane_test = sugarcane[2:]
+    wheat_test = wheat[2:]
+
+    # get training data
+    train_data, train_target = mergeInputData(
+        [jute_train, maize_train, rice_train, sugarcane_train, wheat_train],
+        [jute_targets[0:2], maize_targets[0:2], rice_targets[0:2], sugarcane_targets[0:2], wheat_targets[0:2]]
+    )
+
+    # get test data
+    test_data, test_target = mergeInputData(
+        [jute_test, maize_test, rice_test, sugarcane_test, wheat_test],
+        [jute_targets[2:], maize_targets[2:], rice_targets[2:], sugarcane_targets[2:], wheat_targets[2:]]
+    )
+
 
     # window = (5,5)
     # for i in imgs:
