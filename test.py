@@ -67,7 +67,7 @@ def mergeInputData(dataList, targetList):
 
 
 
-def slideWindow(image, window, img_dimensions):
+def slideWindow(image, window, img_dimensions, train_data, train_target):
     """
     Notes:
         - currently just slides along and creates the terminal set for each window
@@ -102,7 +102,7 @@ def slideWindow(image, window, img_dimensions):
             # avg = (sum[0]/(window_x*window_y), sum[1]/(window_x*window_y), sum[2]/(window_x*window_y))
             # print(i,j, sum, avg)
             # print(i, j, terminal_set)
-            gpProcess(terminal_set)
+            gpProcess(terminal_set, train_data, train_target)
 
 
 
@@ -119,10 +119,8 @@ def protectedDiv(left, right):
 def fitnessFunction():
     """
     TODO
-        - read paper and understand whats going onmail
-
     """
-    return 0
+    return random() #excellent test promise
 
 
 
@@ -181,29 +179,39 @@ Following methods are rough outlines/pseudo code based on paper:
 #     return db, dw
 
 
-def codeNode():
-    """
-    TODO:
-        - generate binary code at each position in sliding window
-        - is root node of gp tree
-        - collects results of children nodes and converts them to binary
-            - if x < 0 then 0, else (if x >= 0) then 1
-            - converts these results into a binary pattern
-            - binary length will be of 2^code_children
-    """
+# def codeNode(pset):
+#     """
+#     TODO:
+#         - generate binary code at each position in sliding window
+#         - is root node of gp tree
+#         - collects results of children nodes and converts them to binary
+#             - if x < 0 then 0, else (if x >= 0) then 1
+#             - converts these results into a binary pattern
+#             - binary length will be of 2^code_children
+#     """
+#
+#     # pseudocode?
+#     """
+#         binary_string = ""
+#         for n in children:
+#             - evaluate(n)
+#             - convert evaluation to binary
+#             - binary_string.append(conversion)
+#     """
+#     binary_string = ""
+#     for n in children:
+#
+#         child_func = compile(n, pset)
+#         x = child_func(inputs?)
+#         if x >= 0:
+#             binary_string.append("1")
+#         else:
+#             binary_string.append("0")
+#
+#     return binary_string
 
-    # pseudocode?
-    """
-        binary_string = ""
-        for n in children:
-            - evaluate(n)
-            - convert evaluation to binary
-            - binary_string.append(conversion)
-    """
-    return -1
 
-
-def gpProcess(terminal_set):
+def gpProcess(terminal_set, train_data, train_target):
     """
     TODO
         - toolbox
@@ -215,12 +223,22 @@ def gpProcess(terminal_set):
             - tree depth (2-10)
             - termination: fitness of 0 (ideal) is found or 30 generations have passed
     """
-    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(int, len(terminal_set)), str, prefix='ARG') # TODO
+    # # code node pset()
+    # c_pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(int, len(terminal_set)), str, prefix='ARG') # TODO
+    #
+    # c_pset.addPrimitive(operator.add, [int, int], int)
+    # c_pset.addPrimitive(operator.sub, [int, int], int)
+    # c_pset.addPrimitive(operator.mul, [int, int], int)
+    # c_pset.addPrimitive(protectedDiv, [int, int], int)
+
+
+    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(int, len(terminal_set)), str, prefix='ARG')
 
     pset.addPrimitive(operator.add, [int, int], int)
     pset.addPrimitive(operator.sub, [int, int], int)
     pset.addPrimitive(operator.mul, [int, int], int)
     pset.addPrimitive(protectedDiv, [int, int], int)
+    # pset.addPrimitive(codeNode, [c_pset], string) #TODO - check this compiles, also check it isnt randomly insterted into pset
 
     """
         potential approach? -> creator.create(root=codeNode())
@@ -238,7 +256,7 @@ def gpProcess(terminal_set):
     toolbox.register("compile", gp.compile, pset=pset)
 
      # TODO: fitnessFunction method
-    toolbox.register("evaluate", fitnessFunction, features=train_features,targets=train_targets) # todo: train target?
+    toolbox.register("evaluate", fitnessFunction, features=train_data,targets=train_target) # todo: train target?
     toolbox.register("select", tools.selTournament, tournsize=7)
     toolbox.register("mate", gp.cxOnePoint) #TODO verify this is best
     toolbox.register("expr_mut", gp.genFull, min_ = 0, max_ = 2) #TODO half and half?
@@ -253,50 +271,61 @@ def gpProcess(terminal_set):
 
 
 if __name__ == "__main__":
-    # load all images
-    jute = loadAllImages("images/archive/crop_images/jute/*.jpg")
-    maize = loadAllImages("images/archive/crop_images/maize/*.jpg")
-    rice = loadAllImages("images/archive/crop_images/rice/*.jpg")
-    sugarcane = loadAllImages("images/archive/crop_images/sugarcane/*.jpg")
-    wheat = loadAllImages("images/archive/crop_images/wheat/*.jpg")
-
-    # create target lists for all images
-    jute_targets = ["jute"] * len(jute)
-    maize_targets = ["maize"] * len(maize)
-    rice_targets = ["rice"] * len(rice)
-    sugarcane_targets = ["sugarcane"] * len(sugarcane)
-    wheat_targets = ["wheat"] * len(wheat)
-
-    # get image dimensions - NOTE: all images appear to be 224x224
-    width, height = getDimensions("images/archive/crop_images/maize/*.jpg")
-
-    # split into test and train
-    # note: only getting first two images of each class for training
-    jute_train = jute[0:2]
-    maize_train = maize[0:2]
-    rice_train = rice[0:2]
-    sugarcane_train = sugarcane[0:2]
-    wheat_train = wheat[0:2]
-
-    jute_test = jute[2:]
-    maize_test = maize[2:]
-    rice_test = rice[2:]
-    sugarcane_test = sugarcane[2:]
-    wheat_test = wheat[2:]
-
-    # get training data
-    train_data, train_target = mergeInputData(
-        [jute_train, maize_train, rice_train, sugarcane_train, wheat_train],
-        [jute_targets[0:2], maize_targets[0:2], rice_targets[0:2], sugarcane_targets[0:2], wheat_targets[0:2]]
-    )
-
-    # get test data
-    test_data, test_target = mergeInputData(
-        [jute_test, maize_test, rice_test, sugarcane_test, wheat_test],
-        [jute_targets[2:], maize_targets[2:], rice_targets[2:], sugarcane_targets[2:], wheat_targets[2:]]
-    )
 
 
-    window = (5,5)
-    for i in train_data:
-        slideWindow(i, window, (width,height))
+
+    # load all (tiny) images
+    jute = loadAllImages("images/archive/tiny_crop_images/jute/*.jpg")
+    maize = loadAllImages("images/archive/tiny_crop_images/maize/*.jpg")
+    rice = loadAllImages("images/archive/tiny_crop_images/rice/*.jpg")
+    sugarcane = loadAllImages("images/archive/tiny_crop_images/sugarcane/*.jpg")
+    wheat = loadAllImages("images/archive/tiny_crop_images/wheat/*.jpg")
+
+    # c = 0
+    # for j in wheat:
+    #     loc = "images/archive/tiny_crop_images/wheat/tiny_" + str(c) + ".jpg"
+    #     resizeImg(j, loc, (10,10))
+    #     c += 1
+    #     # resizeImg(j, (10,10))
+
+
+
+    # # create target lists for all images
+    # jute_targets = ["jute"] * len(jute)
+    # maize_targets = ["maize"] * len(maize)
+    # rice_targets = ["rice"] * len(rice)
+    # sugarcane_targets = ["sugarcane"] * len(sugarcane)
+    # wheat_targets = ["wheat"] * len(wheat)
+    #
+    # # get image dimensions - NOTE: all images appear to be 224x224
+    # width, height = getDimensions("images/archive/crop_images/maize/*.jpg")
+    #
+    # # split into test and train - note: only getting first two images of each class for training
+    # jute_train = jute[0:2]
+    # maize_train = maize[0:2]
+    # rice_train = rice[0:2]
+    # sugarcane_train = sugarcane[0:2]
+    # wheat_train = wheat[0:2]
+    #
+    # jute_test = jute[2:]
+    # maize_test = maize[2:]
+    # rice_test = rice[2:]
+    # sugarcane_test = sugarcane[2:]
+    # wheat_test = wheat[2:]
+    #
+    # # get training data
+    # train_data, train_target = mergeInputData(
+    #     [jute_train, maize_train, rice_train, sugarcane_train, wheat_train],
+    #     [jute_targets[0:2], maize_targets[0:2], rice_targets[0:2], sugarcane_targets[0:2], wheat_targets[0:2]]
+    # )
+    #
+    # # get test data
+    # test_data, test_target = mergeInputData(
+    #     [jute_test, maize_test, rice_test, sugarcane_test, wheat_test],
+    #     [jute_targets[2:], maize_targets[2:], rice_targets[2:], sugarcane_targets[2:], wheat_targets[2:]]
+    # )
+    #
+    #
+    # window = (5,5)
+    # for i in train_data:
+    #     slideWindow(i, window, (width,height), train_data, train_target)
