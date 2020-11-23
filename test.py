@@ -119,9 +119,67 @@ def protectedDiv(left, right):
 def fitnessFunction():
     """
     TODO
-        - read paper and understand whats going on
+        - read paper and understand whats going onmail
+
     """
     return 0
+
+
+
+"""
+Following methods are rough outlines/pseudo code based on paper:
+ - fitnessmeasure
+ - calcDist
+ - calcDistInstances
+ - calcDBandDW
+"""
+# def fitnessMeasure():
+#     return 1 - ((calcAcc()+calcDist())/2)
+#
+#
+# def calcDist():
+#     """
+#     Based on paper.
+#     """
+#     db, dw = calcDBandDW()
+#     return 1/(1+pow(math.e, -5*(db-dw)))
+#
+# def calcDistInstances(featVec):
+#     """
+#     Pseudocode based on Czekanowski Coefficient formula.
+#     """
+#     # get sums
+#     sum_min = 0
+#     sum_tot = 0
+#     for i in featVec:
+#         sum_min += min(u, v)
+#         sum_tot += u + v
+#
+#     return 1 - ((2*sum_min)/sum_tot)
+#
+# def calcDBandDW():
+#     """
+#     Db = average distance between each instance in training set and closest instance from a diff class
+#     Bw = average distance between each instance in training set and cfarthest from same class
+#     let:
+#     c = total number of classes
+#     k = number of instances per class (assumes even number per class?)
+#     """
+#     min = float("inf")
+#     max = float("-inf")
+#     for i in class:
+#         for j in inst:
+#             d = calcDistInstances(i,j)
+#             if d < min:
+#                 min = d
+#             elif d > max:
+#                 max = d
+#
+#     db = (1/(c*k))*min
+#     dw = (1/(c*k))*max
+#
+#     return db, dw
+
 
 def codeNode():
     """
@@ -180,15 +238,15 @@ def gpProcess(terminal_set):
     toolbox.register("compile", gp.compile, pset=pset)
 
      # TODO: fitnessFunction method
-     toolbox.register("evaluate", fitnessFunction, features=train_features,targets=train_targets) # todo: train target?
-     toolbox.register("select", tools.selTournament, tournsize=7)
-     toolbox.register("mate", gp.cxOnePoint) #TODO verify this is best
-     toolbox.register("expr_mut", gp.genFull, min_ = 0, max_ = 2) #TODO half and half?
-     toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset = pset) #TODO ????
+    toolbox.register("evaluate", fitnessFunction, features=train_features,targets=train_targets) # todo: train target?
+    toolbox.register("select", tools.selTournament, tournsize=7)
+    toolbox.register("mate", gp.cxOnePoint) #TODO verify this is best
+    toolbox.register("expr_mut", gp.genFull, min_ = 0, max_ = 2) #TODO half and half?
+    toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset = pset) #TODO ????
 
-     # set max height (TODO: verify min height)
-     toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
-     toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
+    # set max height (TODO: verify min height)
+    toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
+    toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
 
 
 
