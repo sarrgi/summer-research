@@ -3,6 +3,7 @@ import os
 import itertools
 import operator
 import numpy
+import csv
 from math import floor
 from PIL import Image
 
@@ -87,6 +88,9 @@ def slideWindow(image, window, img_dimensions, train_data, train_target):
     # print(buf_x,buf_y,x,y)
 
     #TODO: iterate without index, grey mode
+
+    t_list = []
+
     for i in range(buf_x, x):
         for j in range(buf_y, y):
             # sum = [0,0,0]
@@ -103,8 +107,9 @@ def slideWindow(image, window, img_dimensions, train_data, train_target):
             # avg = (sum[0]/(window_x*window_y), sum[1]/(window_x*window_y), sum[2]/(window_x*window_y))
             # print(i,j, sum, avg)
             # print(i, j, terminal_set)
-            gpProcess(terminal_set, img_dimensions, train_data, train_target)
-
+            t_list.append(terminal_set)
+            # gpProcess(terminal_set, img_dimensions, train_data, train_target)
+    return t_list
 
 
 def protectedDiv(left, right):
@@ -247,6 +252,8 @@ def gpProcess(terminal_set, img_dimensions, train_data, train_target):
     pset.addPrimitive(operator.sub, [int, int], int)
     pset.addPrimitive(operator.mul, [int, int], int)
     pset.addPrimitive(protectedDiv, [int, int], int)
+
+    # define CODENODE as a set wich returns a type that pset cannot, therefore it shall be root (provided tree must return that type)
     # pset.addPrimitive(codeNode, [c_pset], string) #TODO - check this compiles, also check it isnt randomly insterted into pset
 
     """
@@ -290,7 +297,23 @@ def gpProcess(terminal_set, img_dimensions, train_data, train_target):
 
 
 
-
+# def csvwrite():
+#     tt = []
+#     for i in train_data:
+#         # for j in i:
+#         #     print(j[i])
+#         tt.append(slideWindow(i, window, (width,height), train_data, train_target))
+#
+#     with open("test_data/ex1.csv", "w", newline='') as file:
+#         writer = csv.writer(file)
+#
+#         c = 0
+#         for t in tt:
+#             for l in t:
+#                 map(str, l)
+#                 # print([train_target[c]]+l)
+#                 writer.writerow([train_target[c]]+l)
+#             c += 1
 
 if __name__ == "__main__":
 
@@ -348,5 +371,20 @@ if __name__ == "__main__":
     )
 
     window = (5,5)
+    # print(len(train_data))
+    tt = []
     for i in train_data:
-        slideWindow(i, window, (width,height), train_data, train_target)
+        # for j in i:
+        #     print(j[i])
+        tt.append(slideWindow(i, window, (width,height), train_data, train_target))
+
+    with open("test_data/ex1.csv", "w", newline='') as file:
+        writer = csv.writer(file)
+
+        c = 0
+        for t in tt:
+            for l in t:
+                map(str, l)
+                # print([train_target[c]]+l)
+                writer.writerow([train_target[c]]+l)
+            c += 1
