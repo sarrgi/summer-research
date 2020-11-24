@@ -25,21 +25,28 @@ def protectedDiv(left, right):
 
 def fitnessFunc(individual, toolbox, features, targets):
     width, height = img_dimensions
+    # print("FEATURING:", features)
 
     # Transform the tree expression in a callable function
     func = toolbox.compile(expr=individual)
 
-    sum = 0
-    for i in range(len(features)):
-        # print(len(features))
-        # print(func(*features[:25]))
-        if func(*features[:25]) == True: #targets[i]:
-            sum += 1
+    # print(type(features[0][0]), features[0][0])
+    print("very fit:", func(*features[0]))
 
-    return sum/len(targets),
+    return 1,
+
+    # sum = 0
+    # for i in range(len(features)):
+    #     # print(len(features))
+    #     print(func(*features[:25]))
+    #     if True:
+    #     # if func(*features[:25]) == True: #targets[i]:
+    #         sum += 1
+    #
+    # return sum/len(targets),
 
 
-def codeNode():
+def codeNode(a, b, c):
     """
     TODO
     """
@@ -53,17 +60,32 @@ def bittaGP(train_targets, train_features, img_dimensions):
     img_w, img_h = img_dimensions
     # print(len(train_features[0]))
 
-    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(int, len(train_features[0])), bool, prefix='F')
+    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(int, len(train_features[0])), float, prefix='F')
 
-    pset.addPrimitive(operator.add, [int, int], int)
-    pset.addPrimitive(operator.sub, [int, int], int)
-    pset.addPrimitive(operator.mul, [int, int], int)
-    pset.addPrimitive(protectedDiv, [int, int], int)
+    pset.addPrimitive(operator.add, [int, int], int, name="ADD")
+    pset.addPrimitive(operator.sub, [int, int], int, name="MEATBALL_SUB")
+    pset.addPrimitive(operator.mul, [int, int], int, name="MULTI")
+    pset.addPrimitive(protectedDiv, [int, int], int, name="PROT")
 
-    pset.addPrimitive(codeNode, [], bool)
+    pset.addPrimitive(operator.add, [int, int], float, name="FLOAT")
 
-    pset.addTerminal(False, bool)
-    pset.addTerminal(True, bool)
+    # pset.addPrimitive(operator.and_, [bool, bool], bool)
+    # pset.addPrimitive(operator.or_, [bool, bool], bool)
+    # pset.addPrimitive(operator.not_, [bool], bool)
+    # pset.addPrimitive(codeNode, [int, int, int], bool)
+
+    # pset.addTerminal(True, bool)
+    # pset.addTerminal(False, bool)
+    # pset.addTerminal(0.0, float)
+    # pset.addTerminal(1.0, float)
+    # pset.addTerminal(2.0, float)
+    # pset.addTerminal(3.0, float)
+    # pset.addTerminal("0.0", str)
+    # pset.addTerminal("1.0", str)
+    # pset.addTerminal("2.0", str)
+    # pset.addTerminal("3.0", str)
+    for t in tr
+
 
     # # define CODENODE as a set wich returns a type that pset cannot, therefore it shall be root (provided tree must return that type)
     # # pset.addPrimitive(codeNode, [c_pset], string) #TODO - check this compiles, also check it isnt randomly insterted into pset
@@ -103,7 +125,7 @@ def bittaGP(train_targets, train_features, img_dimensions):
     stats.register("max", numpy.max)
     pop, log = algorithms.eaSimple(pop, toolbox, 0.7, 0.15, 20, stats, halloffame=hof, verbose=False)
 
-    print(hof[0])
+    print("HOF:", hof[0])
 
     return -1
 
@@ -135,8 +157,12 @@ if __name__ == "__main__":
     # read into features and targets
     train_targets, train_features = readCSV("test_data/5x5.csv")
 
+    # convert from str to int
+    converted = [[int(i) for i in j] for j in train_features]
+
     # hardcoded lol
     img_dimensions = (10,10)
 
 
-    bittaGP(train_targets, train_features, img_dimensions)
+    # bittaGP(train_targets, train_features, img_dimensions)
+    bittaGP(train_targets, converted, img_dimensions)
