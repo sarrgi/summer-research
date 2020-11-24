@@ -4,6 +4,7 @@ import itertools
 import operator
 import numpy
 import random
+import time
 
 from deap import algorithms
 from deap import base
@@ -11,7 +12,7 @@ from deap import creator
 from deap import tools
 from deap import gp
 
-
+# Global variable as thi needs to be accessed by codeNode, (can't create inside (cost), or pass throug (deap))
 def protectedDiv(left, right):
     """
     Performs regular division, if divide by 0 issues then returns 0
@@ -23,17 +24,39 @@ def protectedDiv(left, right):
         return 0
 
 
+def createEvalPset():
+    pset = gp.PrimitiveSetTyped("EVAL", itertools.repeat(int, 3), str, prefix='F')
+
+    # define primitive set
+    pset.addPrimitive(operator.add, [int, int], int, name="ADD")
+    pset.addPrimitive(operator.sub, [int, int], int, name="MEATBALL_SUB")
+    pset.addPrimitive(operator.mul, [int, int], int, name="MULTI")
+    pset.addPrimitive(protectedDiv, [int, int], int, name="PROT")
+
+    return pset
+
+eval_pset = createEvalPset()
+
+
+
 def fitnessFunc(individual, toolbox, features, targets):
-    width, height = img_dimensions
     # print("FEATURING:", features)
 
     # Transform the tree expression in a callable function
     func = toolbox.compile(expr=individual)
 
-    # print(type(features[0][0]), features[0][0])
-    print("very fit:", func(*features[0]))
+    # print("very fit:", func(*features[0]))
 
-    return 1,
+    sum = 0
+    for i in range(len(features)):
+        if func(*features[i]) == targets[i]:
+            sum += 1
+
+    # print(sum/len(targets))
+    return sum/len(targets),
+
+    # # random number between 0 and 1
+    # return random.random(),
 
     # sum = 0
     # for i in range(len(features)):
@@ -46,33 +69,49 @@ def fitnessFunc(individual, toolbox, features, targets):
     # return sum/len(targets),
 
 
-def codeNode(a, b, c):
+def codeNode(*args):
     """
+    NOTE
+        - children appear to be automatically evaluated (can be floats or ints)
     TODO
+        - check correct number of children
+        - implement it lol
+            - actually evaluate children
+            - create binary string
+            - return binary string??
     """
-    if random.randint(0,1) > 0.5:
-        return True
-    else:
-        return False
+
+    # calculate binary string based on child nodes
+    binary_string = ""
+    for v in args:
+        if float(v) < 0.0:
+            binary_string = "".join((binary_string, "0"))
+        else:
+            binary_string = "".join((binary_string, "1"))
+    print(binary_string)
+
+    r = random.randint(1,5)
+
+    if r == 1: return "jute"
+    elif r == 2: return "maize"
+    elif r == 3: return "rice"
+    elif r == 4: return "sugarcane"
+    elif r == 5: return "wheat"
 
 
-def bittaGP(train_targets, train_features, img_dimensions):
-    img_w, img_h = img_dimensions
-    # print(len(train_features[0]))
+def createToolbox(train_targets, train_features):
+    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(int, len(train_features[0])), str, prefix='F')
 
-    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(int, len(train_features[0])), float, prefix='F')
-
+    # define primitive set
     pset.addPrimitive(operator.add, [int, int], int, name="ADD")
     pset.addPrimitive(operator.sub, [int, int], int, name="MEATBALL_SUB")
     pset.addPrimitive(operator.mul, [int, int], int, name="MULTI")
     pset.addPrimitive(protectedDiv, [int, int], int, name="PROT")
 
-    pset.addPrimitive(operator.add, [int, int], float, name="FLOAT")
+    # pset.addPrimitive(operator.add, [int, int], float, name="FLOAT")
+    pset.addPrimitive(codeNode, ([int] * 3), str)
 
-    # pset.addPrimitive(operator.and_, [bool, bool], bool)
-    # pset.addPrimitive(operator.or_, [bool, bool], bool)
-    # pset.addPrimitive(operator.not_, [bool], bool)
-    # pset.addPrimitive(codeNode, [int, int, int], bool)
+    # define terminal set - TODO check this doesnt effect fitness func
 
     # pset.addTerminal(True, bool)
     # pset.addTerminal(False, bool)
@@ -80,16 +119,14 @@ def bittaGP(train_targets, train_features, img_dimensions):
     # pset.addTerminal(1.0, float)
     # pset.addTerminal(2.0, float)
     # pset.addTerminal(3.0, float)
-    # pset.addTerminal("0.0", str)
-    # pset.addTerminal("1.0", str)
-    # pset.addTerminal("2.0", str)
-    # pset.addTerminal("3.0", str)
-    for t in tr
+    pset.addTerminal("jute", str)
+    pset.addTerminal("maize", str)
+    pset.addTerminal("rice", str)
+    pset.addTerminal("sugarcane", str)
+    pset.addTerminal("wheat", str)
+    # pset.addEphemeralConstant("rand100", lambda: random.random() * 100, float)
 
 
-    # # define CODENODE as a set wich returns a type that pset cannot, therefore it shall be root (provided tree must return that type)
-    # # pset.addPrimitive(codeNode, [c_pset], string) #TODO - check this compiles, also check it isnt randomly insterted into pset
-    #
     # creates fitness and individual classes
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMax)
@@ -112,10 +149,10 @@ def bittaGP(train_targets, train_features, img_dimensions):
     toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
     toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
 
+    return toolbox
 
 
-
-
+def evaluate(toolbox, train_features, train_targets, test_features, test_targets):
     pop = toolbox.population(n=400)
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -126,8 +163,9 @@ def bittaGP(train_targets, train_features, img_dimensions):
     pop, log = algorithms.eaSimple(pop, toolbox, 0.7, 0.15, 20, stats, halloffame=hof, verbose=False)
 
     print("HOF:", hof[0])
+    # print("Training Accuracy:", fitnessFunc(hof[0], toolbox, train_features, train_targets)[0], "%.")
+    # print("Test Accuracy:", fitnessFunc(hof[0], toolbox, test_features, test_targets)[0], "%.")
 
-    return -1
 
 
 def readCSV(fileName):
@@ -156,13 +194,21 @@ if __name__ == "__main__":
 
     # read into features and targets
     train_targets, train_features = readCSV("test_data/5x5.csv")
+    # TODO: split into train and test
 
     # convert from str to int
-    converted = [[int(i) for i in j] for j in train_features]
+    train_features = [[int(i) for i in j] for j in train_features]
 
     # hardcoded lol
     img_dimensions = (10,10)
 
+    start_time = time.time()
 
     # bittaGP(train_targets, train_features, img_dimensions)
-    bittaGP(train_targets, converted, img_dimensions)
+    toolbox = createToolbox(train_targets, train_features)
+    # print(train_features)
+    evaluate(toolbox, train_targets, train_features, train_targets, train_features)
+
+    print("Time taken: ", "{:.2f}".format(time.time() - start_time), " seconds.", sep='')
+
+    time.sleep(3)
