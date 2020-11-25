@@ -25,20 +25,6 @@ def protectedDiv(left, right):
         return 0
 
 
-def createEvalPset():
-    pset = gp.PrimitiveSetTyped("EVAL", itertools.repeat(int, 3), str, prefix='F')
-
-    # define primitive set
-    pset.addPrimitive(operator.add, [int, int], int, name="ADD")
-    pset.addPrimitive(operator.sub, [int, int], int, name="MEATBALL_SUB")
-    pset.addPrimitive(operator.mul, [int, int], int, name="MULTI")
-    pset.addPrimitive(protectedDiv, [int, int], int, name="PROT")
-
-    return pset
-
-eval_pset = createEvalPset()
-
-
 def convertToDecimal(binary_string):
     """
     Converts a binary string in to corresponding integer value.
