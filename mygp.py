@@ -5,6 +5,7 @@ import operator
 import numpy
 import random
 import time
+import re
 
 from deap import algorithms
 from deap import base
@@ -60,15 +61,29 @@ def fitnessFunc(individual, toolbox, features, targets):
 
     feature_vectors = {}
     for i in range(len(targets)):
-        # add i to key to create unique entry for each image
-        feature_vectors[targets[i]] = generateFeatureVector(8, func, features, targets)
+        # get specific class from target name
+        target = re.sub(r'[0-9]+', ' ', targets[i])
+
+        if target in feature_vectors:
+            # add to existing image
+            vals = [feature_vectors[target]]
+            vals.append(generateFeatureVector(8, func, features, targets))
+            feature_vectors[target] = vals
+        else:
+            #unique entry
+            feature_vectors[target] = generateFeatureVector(8, func, features, targets)
 
     print(feature_vectors)
     # print("very fit:", func(*features[0]))
 
+
+
+
+
+    # essentially random feature count
     sum = 0
     for i in range(len(features)):
-        if func(*features[i]) == targets[int(i/36)]:
+        if func(*features[i]) == targets[int(i/36)]: #yeah yeah
             sum += 1
 
     # print(sum/len(targets))
