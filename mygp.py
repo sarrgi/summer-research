@@ -38,47 +38,63 @@ def createEvalPset():
 eval_pset = createEvalPset()
 
 
+def convertToDecimal(binary_string):
+    """
+    Converts a binary string in to corresponding integer value.
+    """
+    return int(binary_string, 2)
+
+
 
 def fitnessFunc(individual, toolbox, features, targets):
+    """
+    - should find the min and max distance between it and other classes
+
+    """
+
+
     # print("FEATURING:", features)
 
     # Transform the tree expression in a callable function
     func = toolbox.compile(expr=individual)
 
+    feature_vectors = {}
+    for i in range(len(targets)):
+        # add i to key to create unique entry for each image
+        feature_vectors[targets[i]] = generateFeatureVector(8, func, features, targets)
+
+    print(feature_vectors)
     # print("very fit:", func(*features[0]))
 
     sum = 0
     for i in range(len(features)):
-        if func(*features[i]) == targets[i]:
+        if func(*features[i]) == targets[int(i/36)]:
             sum += 1
 
     # print(sum/len(targets))
     return sum/len(targets),
 
-    # # random number between 0 and 1
-    # return random.random(),
 
-    # sum = 0
-    # for i in range(len(features)):
-    #     # print(len(features))
-    #     print(func(*features[:25]))
-    #     if True:
-    #     # if func(*features[:25]) == True: #targets[i]:
-    #         sum += 1
-    #
-    # return sum/len(targets),
 
+def generateFeatureVector(length, func, features, targets):
+    """
+    TODO
+        - implement feature vec for fitness measure
+    """
+    feature_vector = [0] * length
+
+    for i in range(len(features)):
+        # print("feat vec", i, func(*features[i]), targets[i])
+        pos = int(func(*features[i]))
+        feature_vector[pos] += 1
+
+    return feature_vector
 
 def codeNode(*args):
     """
     NOTE
         - children appear to be automatically evaluated (can be floats or ints)
-    TODO
-        - check correct number of children
-        - implement it lol
-            - actually evaluate children
-            - create binary string
-            - return binary string??
+        - currently returns binary value (as a float to distinguis this as root node)
     """
 
     # calculate binary string based on child nodes
@@ -88,44 +104,42 @@ def codeNode(*args):
             binary_string = "".join((binary_string, "0"))
         else:
             binary_string = "".join((binary_string, "1"))
-    print(binary_string)
 
-    r = random.randint(1,5)
+    d = convertToDecimal(binary_string)
+    # print(type(d), d)
+    return float(d)
 
-    if r == 1: return "jute"
-    elif r == 2: return "maize"
-    elif r == 3: return "rice"
-    elif r == 4: return "sugarcane"
-    elif r == 5: return "wheat"
+
+    # fun evaluating method:
+    # r = random.randint(1,5)
+    # if r == 1: return "jute"
+    # elif r == 2: return "maize"
+    # elif r == 3: return "rice"
+    # elif r == 4: return "sugarcane"
+    # elif r == 5: return "wheat"
 
 
 def createToolbox(train_targets, train_features):
-    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(int, len(train_features[0])), str, prefix='F')
+    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(int, len(train_features[0])), float, prefix='F')
 
     # define primitive set
     pset.addPrimitive(operator.add, [int, int], int, name="ADD")
-    pset.addPrimitive(operator.sub, [int, int], int, name="MEATBALL_SUB")
-    pset.addPrimitive(operator.mul, [int, int], int, name="MULTI")
-    pset.addPrimitive(protectedDiv, [int, int], int, name="PROT")
+    pset.addPrimitive(operator.sub, [int, int], int, name="SUB")
+    pset.addPrimitive(operator.mul, [int, int], int, name="MULT")
+    pset.addPrimitive(protectedDiv, [int, int], int, name="PDIV")
 
     # pset.addPrimitive(operator.add, [int, int], float, name="FLOAT")
-    pset.addPrimitive(codeNode, ([int] * 3), str)
+    pset.addPrimitive(codeNode, ([int] * 3), float)
 
-    # define terminal set - TODO check this doesnt effect fitness func
+    # define terminal set (TODO: hard coded to 2^3 as 3 for codenode)
+    for i in range(8):
+        pset.addTerminal(i, float)
 
-    # pset.addTerminal(True, bool)
-    # pset.addTerminal(False, bool)
-    # pset.addTerminal(0.0, float)
-    # pset.addTerminal(1.0, float)
-    # pset.addTerminal(2.0, float)
-    # pset.addTerminal(3.0, float)
-    pset.addTerminal("jute", str)
-    pset.addTerminal("maize", str)
-    pset.addTerminal("rice", str)
-    pset.addTerminal("sugarcane", str)
-    pset.addTerminal("wheat", str)
-    # pset.addEphemeralConstant("rand100", lambda: random.random() * 100, float)
-
+    # pset.addTerminal("jute", str)
+    # pset.addTerminal("maize", str)
+    # pset.addTerminal("rice", str)
+    # pset.addTerminal("sugarcane", str)
+    # pset.addTerminal("wheat", str)
 
     # creates fitness and individual classes
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -167,15 +181,20 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     # print("Test Accuracy:", fitnessFunc(hof[0], toolbox, test_features, test_targets)[0], "%.")
 
 
+def removeDuplicates(list):
+    seen = set()
+    seen_add = seen.add
+    return [x for x in list if not (x in seen or seen_add(x))]
 
-def readCSV(fileName):
+
+def readCSV(file_name):
     """
     Read the csv and split into target and feature lists.
     """
     train_targets = []
     train_features = []
 
-    with open('test_data/5x5.csv') as csv_file:
+    with open(file_name) as csv_file:
         reader = csv.reader(csv_file, delimiter=',')
 
         for row in reader:
@@ -193,11 +212,14 @@ def readCSV(fileName):
 if __name__ == "__main__":
 
     # read into features and targets
-    train_targets, train_features = readCSV("test_data/5x5.csv")
+    train_targets, train_features = readCSV("test_data/5x5testUnique.csv")
     # TODO: split into train and test
 
     # convert from str to int
     train_features = [[int(i) for i in j] for j in train_features]
+    #remove duplicates
+    train_targets = removeDuplicates(train_targets)
+    print(train_targets)
 
     # hardcoded lol
     img_dimensions = (10,10)

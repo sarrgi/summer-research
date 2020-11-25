@@ -378,7 +378,7 @@ if __name__ == "__main__":
         #     print(j[i])
         tt.append(slideWindow(i, window, (width,height), train_data, train_target))
 
-    with open("test_data/ex1.csv", "w", newline='') as file:
+    with open("test_data/ex12.csv", "w", newline='') as file:
         writer = csv.writer(file)
 
         c = 0
@@ -386,5 +386,5 @@ if __name__ == "__main__":
             for l in t:
                 map(str, l)
                 # print([train_target[c]]+l)
-                writer.writerow([train_target[c]]+l)
+                writer.writerow(["".join((train_target[c], str(c)))]+l)
             c += 1
