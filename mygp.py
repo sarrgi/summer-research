@@ -13,11 +13,18 @@ from deap import creator
 from deap import tools
 from deap import gp
 
-# Global variable as thi needs to be accessed by codeNode, (can't create inside (cost), or pass throug (deap))
+
 def protectedDiv(left, right):
     """
-    Performs regular division, if divide by 0 issues then returns 0
-    (Using 0 (and not 1) as this is specified by GP-criptor paper.
+    Performs regular division, with the exception of safeguarding potential division by 0 issues.
+    In this case it will return 0. (Using 0 (and not 1) as this is specified by GP-criptor paper.)
+
+    Args:
+        left (number): Numerator.
+        right (number): Denominator.
+
+    Returns:
+        0 if right == 0, left/right otherwise
     """
     try:
         return left / right
@@ -27,25 +34,55 @@ def protectedDiv(left, right):
 
 def convertToDecimal(binary_string):
     """
-    Converts a binary string in to corresponding integer value.
+    Converts a binary string into its corresponding integer value.
+
+    Args:
+        binary_string (str): Binary representation of a number.
+
+    Returns:
+        Integer value of the binary string.
     """
     return int(binary_string, 2)
 
 
-
-def fitnessFunc(individual, toolbox, features, targets):
+def generateFeatureVector(length, func, features):
     """
-    - should find the min and max distance between it and other classes
+    Generate a single feature vector from a single image.
 
+    Args:
+        individual (registered individual in toolbox): Individual GP tree.
+        toolbox (deap.Base.Toolbox): toolbox of set used to compile the individual into a callable method.
+        features (`list` of int): list of features of a single image.
+
+    Returns:
+        Feature vector.
     """
+    feature_vector = [0] * length
+
+    for i in range(len(features)):
+        # print("feat vec", i, func(*features[i]), targets[i])
+        pos = int(func(*features[i]))
+        feature_vector[pos] += 1
+
+    return feature_vector
 
 
-    # print("FEATURING:", features)
+def generateAllFeatureVectors(individual, toolbox, features, targets):
+    """
+    Generate the feature vector for all images in the training set.
 
-    # Transform the tree expression in a callable function
+    Args:
+        individual (registered individual in toolbox): Individual GP tree.
+        toolbox (deap.Base.Toolbox): toolbox of set used to compile the individual into a callable method.
+        features (`list` of `list` of int): list of features of all images in the set.
+        targets  (`list` of `str`): list of all images target class.
+
+    Returns:
+        list of feature vectors for all images in the training set.
+    """
+    feature_vectors = {}
     func = toolbox.compile(expr=individual)
 
-    feature_vectors = {}
     for i in range(len(targets)):
         # get specific class from target name
         target = re.sub(r'[0-9]+', ' ', targets[i])
@@ -59,14 +96,38 @@ def fitnessFunc(individual, toolbox, features, targets):
             #unique entry
             feature_vectors[target] = generateFeatureVector(8, func, features, targets)
 
+    return feature_vectors
+
+
+def distanceVectors():
+    """
+    TODO - calc distance between any given two feature vectors
+    """
+    return -1
+
+def distanceBetweenAndWithin():
+    """
+    TODO:
+        - calc distanc between all feature vectors in training set
+        - and then return DB and DW values
+    """
+    return -1
+
+
+
+def fitnessFunc(individual, toolbox, features, targets):
+    """
+    TODO: implement distance based fitness function (chi square only)
+
+    """
+
+    feature_vectors = generateAllFeatureVectors(individual, toolbox, features, targets)
     print(feature_vectors)
     # print("very fit:", func(*features[0]))
 
 
-
-
-
     # essentially random feature count
+    func = toolbox.compile(expr=individual)
     sum = 0
     for i in range(len(features)):
         if func(*features[i]) == targets[int(i/36)]: #yeah yeah
@@ -76,26 +137,20 @@ def fitnessFunc(individual, toolbox, features, targets):
     return sum/len(targets),
 
 
-
-def generateFeatureVector(length, func, features, targets):
-    """
-    TODO
-        - implement feature vec for fitness measure
-    """
-    feature_vector = [0] * length
-
-    for i in range(len(features)):
-        # print("feat vec", i, func(*features[i]), targets[i])
-        pos = int(func(*features[i]))
-        feature_vector[pos] += 1
-
-    return feature_vector
-
 def codeNode(*args):
     """
-    NOTE
+    Root node of the GP tree.
+    Evaluates all children and returns a binary string based on the evaluations.
+
+    Args:
+        *args (`list` of children nodes):
+
+    Returns:
+        Decimal value as a float.
+
+    NOTE:
         - children appear to be automatically evaluated (can be floats or ints)
-        - currently returns binary value (as a float to distinguis this as root node)
+        - currently returns binary value (as a float to distinguish this as root node)
     """
 
     # calculate binary string based on child nodes
@@ -111,16 +166,17 @@ def codeNode(*args):
     return float(d)
 
 
-    # fun evaluating method:
-    # r = random.randint(1,5)
-    # if r == 1: return "jute"
-    # elif r == 2: return "maize"
-    # elif r == 3: return "rice"
-    # elif r == 4: return "sugarcane"
-    # elif r == 5: return "wheat"
-
-
 def createToolbox(train_targets, train_features):
+    """
+    Create a toolbox for evolving and evaluating the GP tree.
+
+    Args:
+        train_targets (`list` of str):  list of features of all images in the set.
+        train_features (`list` of `list` of int): list of all images target class.
+
+    Returns:
+        Toolbox object for evolving and evaluating the GP tree.
+    """
     pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(int, len(train_features[0])), float, prefix='F')
 
     # define primitive set
@@ -168,6 +224,9 @@ def createToolbox(train_targets, train_features):
 
 
 def evaluate(toolbox, train_features, train_targets, test_features, test_targets):
+    """
+        TODO - proper evaluation
+    """
     pop = toolbox.population(n=400)
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -183,6 +242,15 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
 
 
 def removeDuplicates(list):
+    """
+    Removes the duplicates of a list.
+
+    Params:
+        list (`list` of obj): Any list.
+
+    Returns:
+        A list with no duplicate values.
+    """
     seen = set()
     seen_add = seen.add
     return [x for x in list if not (x in seen or seen_add(x))]
@@ -191,6 +259,9 @@ def removeDuplicates(list):
 def readCSV(file_name):
     """
     Read the csv and split into target and feature lists.
+
+    Args:
+        file_name (str): The name (and directory) of file to be opened.
     """
     train_targets = []
     train_features = []
