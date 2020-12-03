@@ -263,7 +263,7 @@ def createToolbox(train_targets, train_features):
 
      # TODO: fitnessFunction method
     toolbox.register("evaluate", fitnessFunc, toolbox=toolbox, features=train_features,targets=train_targets) # todo: train target?
-    toolbox.register("select", tools.selTournament, tournsize=7)
+    toolbox.register("select", tools.selTournament, tournsize=5)
     toolbox.register("mate", gp.cxOnePoint) #TODO verify this is best
     toolbox.register("expr_mut", gp.genHalfAndHalf, min_ = 0, max_ = 2) #TODO half and half?
     toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset = pset) #TODO ????
@@ -279,14 +279,14 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     """
         TODO - proper evaluation
     """
-    pop = toolbox.population(n=400)
+    pop = toolbox.population(n=500)
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", numpy.mean)
     stats.register("std", numpy.std)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
-    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 20, stats, halloffame=hof, verbose=False) # TODO corssover 0.8, mutation 0.19, reproduction 0.01
+    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 50, stats, halloffame=hof, verbose=False) # TODO corssover 0.8, mutation 0.19, reproduction 0.01
 
     print("HOF:", hof[0])
     # print(train_targets)
