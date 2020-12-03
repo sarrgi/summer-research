@@ -14,6 +14,7 @@ from deap import creator
 from deap import tools
 from deap import gp
 
+debug = False
 
 def protectedDiv(left, right):
     """
@@ -139,6 +140,7 @@ def distanceBetweenAndWithin(set):
                 for compare_i in set[compare_c]:
                     # calculate dist
                     # print(current_c, current_i, compare_c, compare_i)
+                    # print(current_i, "vs", compare_i)
                     dist = distanceVectors(current_i, compare_i)
                     # print(current_i, compare_i, dist)
                     # add dist to respective count
@@ -149,6 +151,9 @@ def distanceBetweenAndWithin(set):
 
     dist_within /= (total_inst * (total_inst - inst_per_class))
     dist_between /= (total_inst * (inst_per_class - 1))
+
+    if dist_within != 0 or dist_between !=0:
+        print("!!!!!", dist_within, dist_between)
 
     # print("dw", dist_within, "db", dist_between)
     return dist_within, dist_between
@@ -162,8 +167,10 @@ def fitnessFunc(individual, toolbox, features, targets):
     """
 
     feature_vectors = generateAllFeatureVectors(individual, toolbox, features, targets)
-    # print(feature_vectors)
+    # if debug:
+    #     print(feature_vectors)
     # print("very fit:", func(*features[0]))
+    # print(len(feature_vectors), "-", len(list(feature_vectors.values())[0]))
     dist_within, dist_between = distanceBetweenAndWithin(feature_vectors)
 
     fit = 1 / (1 + pow(math.e, (-5 * (dist_within - dist_between))))
@@ -201,14 +208,14 @@ def codeNode(*args):
     # calculate binary string based on child nodes
     binary_string = ""
     for v in args:
-        if float(v) < 0.0: #/356 as a normalization attempt
+        if v < 0.0: #/356 as a normalization attempt
             binary_string = "".join((binary_string, "0"))
         else:
             binary_string = "".join((binary_string, "1"))
 
     d = convertToDecimal(binary_string)
     # print(type(d), d)
-    return float(d)
+    return d
 
 
 def createToolbox(train_targets, train_features):
@@ -222,20 +229,20 @@ def createToolbox(train_targets, train_features):
     Returns:
         Toolbox object for evolving and evaluating the GP tree.
     """
-    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(int, len(train_features[0])), float, prefix='F')
+    pset = gp.PrimitiveSetTyped("MAIN", itertools.repeat(float, len(train_features[0])), int, prefix='F')
 
     # define primitive set
-    pset.addPrimitive(operator.add, [int, int], int, name="ADD")
-    pset.addPrimitive(operator.sub, [int, int], int, name="SUB")
-    pset.addPrimitive(operator.mul, [int, int], int, name="MULT")
-    pset.addPrimitive(protectedDiv, [int, int], int, name="PDIV")
+    pset.addPrimitive(operator.add, [float, float], float, name="ADD")
+    pset.addPrimitive(operator.sub, [float, float], float, name="SUB")
+    pset.addPrimitive(operator.mul, [float, float], float, name="MULT")
+    pset.addPrimitive(protectedDiv, [float, float], float, name="PDIV")
 
     # pset.addPrimitive(operator.add, [int, int], float, name="FLOAT")
-    pset.addPrimitive(codeNode, ([int] * 8), float)
+    pset.addPrimitive(codeNode, ([float] * 8), int)
 
     # define terminal set (TODO: hard coded to 2^3 as 3 for codenode)
     for i in range(pow(2, 8)):
-        pset.addTerminal(i, float)
+        pset.addTerminal(i, int)
 
     # pset.addTerminal("jute", str)
     # pset.addTerminal("maize", str)
@@ -279,12 +286,19 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     stats.register("std", numpy.std)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
-    pop, log = algorithms.eaSimple(pop, toolbox, 0.7, 0.15, 20, stats, halloffame=hof, verbose=False)
+    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 20, stats, halloffame=hof, verbose=False) # TODO corssover 0.8, mutation 0.19, reproduction 0.01
 
     print("HOF:", hof[0])
     # print(train_targets)
+
+    print(type(train_targets))
+    print(type(train_features[0]))
+    print(type(test_targets))
+    print(type(test_features[0]))
+
     print("Training Accuracy:", fitnessFunc(hof[0], toolbox, train_features, train_targets)[0], "%.")
-    # print("Test Accuracy:", fitnessFunc(hof[0], toolbox, test_features, test_targets)[0], "%.")
+    # debug = True
+    # print("Test Accuracy:", fitnessFunc(hof[0], toolbox, test_features[:2], test_targets)[0], "%.")
 
 
 def removeDuplicates(list):
@@ -325,14 +339,20 @@ def readCSV(file_name):
     return train_targets, train_features
 
 
+def normalize(l):
+    min = 0
+    max = 255
 
+    for set in l:
+        for i in range(len(set)):
+            set[i] = (set[i]-min) / (max-min)
+
+    return l
 
 if __name__ == "__main__":
 
     # read into features and targets
     train_targets, train_features = readCSV("test_data/5x5testUnique.csv")
-
-
     # convert from str to int
     train_features = [[int(i) for i in j] for j in train_features]
     #remove duplicates
@@ -343,16 +363,26 @@ if __name__ == "__main__":
     test_targets, test_features = readCSV("test_data/5x5testUnseen.csv")
     test_features = [[int(i) for i in j] for j in test_features]
     test_targets = removeDuplicates(test_targets)
-    # print(train_targets)
+    # print(test_features[0])
+
+    normalize(test_features)
+    normalize(train_features)
+    # print(test_features[0])
 
     # hardcoded lol
     img_dimensions = (10,10)
 
     start_time = time.time()
 
+    # print(type(train_targets))
+    # print(type(train_features[0]))
+    # print(type(test_targets))
+    # print(type(test_features[0]))
+
     # bittaGP(train_targets, train_features, img_dimensions)
     toolbox = createToolbox(train_targets, train_features)
     # print(train_features)
+
     evaluate(toolbox, train_features, train_targets, test_features, test_targets)
 
     print("Time taken: ", "{:.2f}".format(time.time() - start_time), " seconds.", sep='')
