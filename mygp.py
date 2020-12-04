@@ -85,7 +85,7 @@ def generateFeatureVector(length, func, features):
     feature_vector = [0] * length
 
     # print(len(features))
-    image_count = 10 #TODO OT HARDCODED
+    # image_count = 10 #TODO NOT HARDCODED
 
     for i in range(len(features)):
         # print("feat vec", i, func(*features[i]), targets[i])
@@ -115,23 +115,11 @@ def generateAllFeatureVectors(individual, toolbox, features, targets):
 
     for i in range(len(targets)):
         # get specific class from target name
-        target = re.sub(r'[0-9]+', ' ', targets[i])
-
-        # if target in feature_vectors:
-        #     # add to existing image
-        #     vals = [feature_vectors[target]]
-        #     vals.append(generateFeatureVector(pow(2, 8), func, features))
-        #     feature_vectors[target] = vals
-        # else:
-        #     #unique entry
-        #     feature_vectors[target] = generateFeatureVector(pow(2, 8), func, features)
-
-        feature_vectors[i] = (target, generateFeatureVector(pow(2, 8), func, features))
-
-    # print(feature_vectors)
-    # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    # print(features)
-    # print("------------------------------------------------")
+        target = re.sub(r'[0-9]+', '', targets[i])
+        # get current image's features from  list - TODO NOT HARDCODED
+        current_features = features[(i*36) : (i+1)*36]
+        # create feature vector from current images
+        feature_vectors[i] = (target, generateFeatureVector(pow(2, 8), func, current_features))
 
     return feature_vectors
 
@@ -149,8 +137,6 @@ def distanceVectors(u, v):
 
     for i in range(len(u)):
         if u[i] + v[i] != 0: #avoid divide by 0 errors
-            # print(type(u[i]), u[i])
-            # print(u[i], v[i], (pow((u[i]-v[i]), 2) / (u[i] + v[i])))
             sum += (pow((u[i]-v[i]), 2) / (u[i] + v[i]))
 
     sum /= 2
@@ -183,14 +169,8 @@ def distanceBetweenAndWithin(set):
             # ensure not comparing object to self
             if key == key2:
                 continue
-            # print(current_c, "vs", compare_c)
 
             # calc distance
-            # print(current_c, current_i)
-            # print(compare_c, compare_i)
-            # print("------------------------------------")
-            # print(set)
-            # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             dist = distanceVectors(current_i, compare_i)
 
             # add dist to respective count
@@ -202,10 +182,9 @@ def distanceBetweenAndWithin(set):
     dist_within /= (total_inst * (total_inst - inst_per_class))
     dist_between /= (total_inst * (inst_per_class - 1))
 
-    if dist_within != 0 or dist_between !=0:
-        print("!!!!!", dist_within, dist_between)
+    # if dist_within != 0 or dist_between !=0:
+    #     print("!!!!!", dist_within, dist_between)
 
-    # print("dw", dist_within, "db", dist_between)
     return dist_within, dist_between
 
 
@@ -215,36 +194,11 @@ def fitnessFunc(individual, toolbox, features, targets):
     TODO: implement distance based fitness function (chi square only)
 
     """
-
-    # for f in range(len(features)):
-    #     print(targets[f], features[f])
-    # print(len(features), "??????????????????????????????????")
-
     feature_vectors = generateAllFeatureVectors(individual, toolbox, features, targets)
-
-    # for f in feature_vectors.values():
-    #     print(f)
-    # print(len(feature_vectors), "??????????????????????????????????")
-
-
-    # if debug:
-    #     print(feature_vectors)
     dist_within, dist_between = distanceBetweenAndWithin(feature_vectors)
 
     fit = 1 / (1 + pow(math.e, (-5 * (dist_within - dist_between))))
-    # print("fit", fit, "dw", dist_within, "db", dist_between)
-    return (1-fit),
-
-
-    # # essentially random feature count
-    # func = toolbox.compile(expr=individual)
-    # sum = 0
-    # for i in range(len(features)):
-    #     if func(*features[i]) == targets[int(i/36)]: #yeah yeah
-    #         sum += 1
-    #
-    # # print(sum/len(targets))
-    # return sum/len(targets),
+    return (1-fit), #TODO - check 1 minus ?
 
 
 def codeNode(*args):
@@ -265,16 +219,17 @@ def codeNode(*args):
 
     # calculate binary string based on child nodes
     binary_string = ""
-    # print(args)
+
+    # evaluate binary tree
     for v in args:
-        if v < 0.0: #/356 as a normalization attempt
+        if v < 0.0:
             binary_string = "".join((binary_string, "0"))
         else:
             binary_string = "".join((binary_string, "1"))
 
+    # convert to a decimal value
     d = convertToDecimal(binary_string)
-    # print(type(d), d)
-    # print(d, binary_string)
+
     return d
 
 
@@ -298,8 +253,8 @@ def createToolbox(train_targets, train_features):
     # define primitive set
     pset.addPrimitive(operator.add, [float, float], float, name="ADD")
     pset.addPrimitive(operator.sub, [float, float], float, name="SUB")
-    # pset.addPrimitive(operator.mul, [float, float], float, name="MULT")
-    # pset.addPrimitive(protectedDiv, [float, float], float, name="PDIV")
+    pset.addPrimitive(operator.mul, [float, float], float, name="MULT")
+    pset.addPrimitive(protectedDiv, [float, float], float, name="PDIV")
 
     # pset.addPrimitive(operator.add, [int, int], float, name="FLOAT")
     pset.addPrimitive(codeNode, ([float] * 8), int)
@@ -330,11 +285,6 @@ def createToolbox(train_targets, train_features):
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("compile", gp.compile, pset=pset)
 
-     # TODO: fitnessFunction method
-    # for i in train_features:
-    #     print(i)
-    # print("??????????????????????????????????????????")
-
     toolbox.register("evaluate", fitnessFunc, toolbox=toolbox, features=train_features,targets=train_targets)
     toolbox.register("select", tools.selTournament, tournsize=5)
     toolbox.register("mate", gp.cxOnePoint)
@@ -362,10 +312,8 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 20, stats, halloffame=hof, verbose=True) #TODO: 50 gens
 
     print("HOF:", hof[0])
-    # print(train_targets)
 
     print("Training Accuracy:", fitnessFunc(hof[0], toolbox, train_features, train_targets)[0], "%.")
-    # debug = True
     # print("Test Accuracy:", fitnessFunc(hof[0], toolbox, test_features[:2], test_targets)[0], "%.")
 
 
@@ -425,34 +373,23 @@ if __name__ == "__main__":
     train_features = [[int(i) for i in j] for j in train_features]
     #remove duplicates
     train_targets = removeDuplicates(train_targets)
-    # print(train_targets)
 
     # test
     test_targets, test_features = readCSV("test_data/5x5testUnseen.csv")
     test_features = [[int(i) for i in j] for j in test_features]
     test_targets = removeDuplicates(test_targets)
-    # print(test_features[0])
 
     test_features = normalizeInput(test_features)
     train_features = normalizeInput(train_features)
-    # print(test_features[0])
 
-    # hardcoded lol
-    img_dimensions = (10,10)
-
+    # start timing method
     start_time = time.time()
 
-    # print(type(train_targets))
-    # print(type(train_features[0]))
-    # print(type(test_targets))
-    # print(type(test_features[0]))
-
-    # bittaGP(train_targets, train_features, img_dimensions)
+    # create toolbox (GP structure)
     toolbox = createToolbox(train_targets, train_features)
-    # print(train_features)
-
+    # evaluate the GP
     evaluate(toolbox, train_features, train_targets, test_features, test_targets)
 
+    # time printout
     print("Time taken: ", "{:.2f}".format(time.time() - start_time), " seconds.", sep='')
-
     time.sleep(3)
