@@ -22,48 +22,21 @@ debug = False
 
 
 """
-Hierarchy Ideas
+INPUTS
+- each array of 25 long makes up one set for gp node
+- therefore toolbox requires iterable arrays of 25 long
+- each images has 36 arrays of 25 long
 
-root
-- must return unique type (decimal location of binary val)
-- SHOULD only have functions as children
+ALL FEATURE VECTORS
+- array of image amount of feature vectors
+- 10 long
+- index key : (class, feature vector) format
 
-functions
-- must return a number
-- must be able to have terminals and functions as children
-
-terminals
-- are numbers
-- must have functions as parents
-
------------------------------------------
-ROOT
-- Returns [str]
-- Children [int, int, int]
-
-FUNCTIONS
-- returns [int]
-- children [float, float]
-
-TERMINALS
-- returns [float]
-
-----------------------------------------
-ROOT
-- Returns [int]
-- Children [math, math, math]
-
-
-FUNCTIONS
-- returns [math]
-- children
-
-TERMINALS
-
-MATH TYPE
-- is a function or a terminal
--
-
+FEATURE VECTOR
+- each array is 2^n long
+- sum of each index should equal 36
+- should keep track of 36 arrays per image
+should
 """
 
 def protectedDiv(left, right):
@@ -111,12 +84,14 @@ def generateFeatureVector(length, func, features):
     """
     feature_vector = [0] * length
 
+    # print(len(features))
+    image_count = 10 #TODO OT HARDCODED
+
     for i in range(len(features)):
         # print("feat vec", i, func(*features[i]), targets[i])
         pos = int(func(*features[i]))
 
         # print(str(func))
-
         feature_vector[pos] += 1
 
     return feature_vector
@@ -153,8 +128,10 @@ def generateAllFeatureVectors(individual, toolbox, features, targets):
 
         feature_vectors[i] = (target, generateFeatureVector(pow(2, 8), func, features))
 
-    # for i in feature_vectors:
-    #     print(i, feature_vectors[i])
+    # print(feature_vectors)
+    # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    # print(features)
+    # print("------------------------------------------------")
 
     return feature_vectors
 
@@ -173,6 +150,7 @@ def distanceVectors(u, v):
     for i in range(len(u)):
         if u[i] + v[i] != 0: #avoid divide by 0 errors
             # print(type(u[i]), u[i])
+            # print(u[i], v[i], (pow((u[i]-v[i]), 2) / (u[i] + v[i])))
             sum += (pow((u[i]-v[i]), 2) / (u[i] + v[i]))
 
     sum /= 2
@@ -208,6 +186,11 @@ def distanceBetweenAndWithin(set):
             # print(current_c, "vs", compare_c)
 
             # calc distance
+            # print(current_c, current_i)
+            # print(compare_c, compare_i)
+            # print("------------------------------------")
+            # print(set)
+            # print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             dist = distanceVectors(current_i, compare_i)
 
             # add dist to respective count
@@ -233,16 +216,24 @@ def fitnessFunc(individual, toolbox, features, targets):
 
     """
 
+    # for f in range(len(features)):
+    #     print(targets[f], features[f])
+    # print(len(features), "??????????????????????????????????")
+
     feature_vectors = generateAllFeatureVectors(individual, toolbox, features, targets)
+
+    # for f in feature_vectors.values():
+    #     print(f)
+    # print(len(feature_vectors), "??????????????????????????????????")
+
+
     # if debug:
     #     print(feature_vectors)
-    # print("very fit:", func(*features[0]))
-    # print(len(feature_vectors), "-", len(list(feature_vectors.values())[0]))
     dist_within, dist_between = distanceBetweenAndWithin(feature_vectors)
 
     fit = 1 / (1 + pow(math.e, (-5 * (dist_within - dist_between))))
     # print("fit", fit, "dw", dist_within, "db", dist_between)
-    return fit,
+    return (1-fit),
 
 
     # # essentially random feature count
@@ -274,6 +265,7 @@ def codeNode(*args):
 
     # calculate binary string based on child nodes
     binary_string = ""
+    # print(args)
     for v in args:
         if v < 0.0: #/356 as a normalization attempt
             binary_string = "".join((binary_string, "0"))
@@ -282,6 +274,7 @@ def codeNode(*args):
 
     d = convertToDecimal(binary_string)
     # print(type(d), d)
+    # print(d, binary_string)
     return d
 
 
@@ -331,22 +324,26 @@ def createToolbox(train_targets, train_features):
     # pool = multiprocessing.Pool()
     # toolbox.register("map", pool.map)
 
-    toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=1, max_=2) #TODO what min/max are?
+    toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=2, max_=10) #min and max of generated trees
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr)
 
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("compile", gp.compile, pset=pset)
 
      # TODO: fitnessFunction method
+    # for i in train_features:
+    #     print(i)
+    # print("??????????????????????????????????????????")
+
     toolbox.register("evaluate", fitnessFunc, toolbox=toolbox, features=train_features,targets=train_targets)
     toolbox.register("select", tools.selTournament, tournsize=5)
     toolbox.register("mate", gp.cxOnePoint)
-    toolbox.register("expr_mut", gp.genHalfAndHalf, min_ = 0, max_ = 2)
+    toolbox.register("expr_mut", gp.genHalfAndHalf, min_ = 2, max_ = 10) #TODO check if these constraints are necessary
     toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset = pset)
 
     # set max height (TODO: verify min height)
-    toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
-    toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
+    # toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), min_value=2, max_value=10))
+    # toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), min_value=2, max_value=10))
 
     return toolbox
 
@@ -355,22 +352,17 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     """
         TODO - proper evaluation
     """
-    pop = toolbox.population(n=500)
+    pop = toolbox.population(n=400) #TODO: 500
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", numpy.mean)
     stats.register("std", numpy.std)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
-    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 50, stats, halloffame=hof, verbose=True)
+    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 20, stats, halloffame=hof, verbose=True) #TODO: 50 gens
 
     print("HOF:", hof[0])
     # print(train_targets)
-
-    print(type(train_targets))
-    print(type(train_features[0]))
-    print(type(test_targets))
-    print(type(test_features[0]))
 
     print("Training Accuracy:", fitnessFunc(hof[0], toolbox, train_features, train_targets)[0], "%.")
     # debug = True
@@ -415,7 +407,7 @@ def readCSV(file_name):
     return train_targets, train_features
 
 
-def normalize(l):
+def normalizeInput(l):
     min = 0
     max = 255
 
@@ -441,8 +433,8 @@ if __name__ == "__main__":
     test_targets = removeDuplicates(test_targets)
     # print(test_features[0])
 
-    normalize(test_features)
-    normalize(train_features)
+    test_features = normalizeInput(test_features)
+    train_features = normalizeInput(train_features)
     # print(test_features[0])
 
     # hardcoded lol
