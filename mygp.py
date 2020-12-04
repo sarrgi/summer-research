@@ -14,7 +14,57 @@ from deap import creator
 from deap import tools
 from deap import gp
 
+# from scoop import futures
+import multiprocessing
+
+
 debug = False
+
+
+"""
+Hierarchy Ideas
+
+root
+- must return unique type (decimal location of binary val)
+- SHOULD only have functions as children
+
+functions
+- must return a number
+- must be able to have terminals and functions as children
+
+terminals
+- are numbers
+- must have functions as parents
+
+-----------------------------------------
+ROOT
+- Returns [str]
+- Children [int, int, int]
+
+FUNCTIONS
+- returns [int]
+- children [float, float]
+
+TERMINALS
+- returns [float]
+
+----------------------------------------
+ROOT
+- Returns [int]
+- Children [math, math, math]
+
+
+FUNCTIONS
+- returns [math]
+- children
+
+TERMINALS
+
+MATH TYPE
+- is a function or a terminal
+-
+
+"""
 
 def protectedDiv(left, right):
     """
@@ -92,24 +142,33 @@ def generateAllFeatureVectors(individual, toolbox, features, targets):
         # get specific class from target name
         target = re.sub(r'[0-9]+', ' ', targets[i])
 
-        if target in feature_vectors:
-            # add to existing image
-            vals = [feature_vectors[target]]
-            vals.append(generateFeatureVector(pow(2, 8), func, features))
-            feature_vectors[target] = vals
-        else:
-            #unique entry
-            feature_vectors[target] = generateFeatureVector(pow(2, 8), func, features)
+        # if target in feature_vectors:
+        #     # add to existing image
+        #     vals = [feature_vectors[target]]
+        #     vals.append(generateFeatureVector(pow(2, 8), func, features))
+        #     feature_vectors[target] = vals
+        # else:
+        #     #unique entry
+        #     feature_vectors[target] = generateFeatureVector(pow(2, 8), func, features)
+
+        feature_vectors[i] = (target, generateFeatureVector(pow(2, 8), func, features))
+
+    # for i in feature_vectors:
+    #     print(i, feature_vectors[i])
 
     return feature_vectors
 
 
 def distanceVectors(u, v):
     """
-    TODO - calc distance between any given two feature vectors
+    Calculate the distance between to vectors.
+    Note: requires len(u) == len(v)
     """
-    e = len(u)
     sum = 0
+
+    # normalize feature vector
+    u = normalizeVector(u)
+    v = normalizeVector(v)
 
     for i in range(len(u)):
         if u[i] + v[i] != 0: #avoid divide by 0 errors
@@ -133,21 +192,29 @@ def distanceBetweenAndWithin(set):
     dist_within = 0
     dist_between = 0
 
-    for current_c in set:
-        for current_i in set[current_c]:
-            #compare with all in set
-            for compare_c in set:
-                for compare_i in set[compare_c]:
-                    # calculate dist
-                    # print(current_c, current_i, compare_c, compare_i)
-                    # print(current_i, "vs", compare_i)
-                    dist = distanceVectors(current_i, compare_i)
-                    # print(current_i, compare_i, dist)
-                    # add dist to respective count
-                    if current_c == compare_c:
-                        dist_within += dist
-                    else:
-                        dist_between += dist
+    # cycle trhough all images in set
+    for key in set:
+        current_c = set[key][0]
+        current_i = set[key][1]
+
+        # compare to all images in set
+        for key2 in set:
+            compare_c = set[key2][0]
+            compare_i = set[key2][1]
+
+            # ensure not comparing object to self
+            if key == key2:
+                continue
+            # print(current_c, "vs", compare_c)
+
+            # calc distance
+            dist = distanceVectors(current_i, compare_i)
+
+            # add dist to respective count
+            if current_c == compare_c:
+                dist_within += dist
+            else:
+                dist_between += dist
 
     dist_within /= (total_inst * (total_inst - inst_per_class))
     dist_between /= (total_inst * (inst_per_class - 1))
@@ -218,6 +285,10 @@ def codeNode(*args):
     return d
 
 
+def normalizeVector(vec):
+    return [float(i)/sum(vec) for i in vec]
+
+
 def createToolbox(train_targets, train_features):
     """
     Create a toolbox for evolving and evaluating the GP tree.
@@ -234,8 +305,8 @@ def createToolbox(train_targets, train_features):
     # define primitive set
     pset.addPrimitive(operator.add, [float, float], float, name="ADD")
     pset.addPrimitive(operator.sub, [float, float], float, name="SUB")
-    pset.addPrimitive(operator.mul, [float, float], float, name="MULT")
-    pset.addPrimitive(protectedDiv, [float, float], float, name="PDIV")
+    # pset.addPrimitive(operator.mul, [float, float], float, name="MULT")
+    # pset.addPrimitive(protectedDiv, [float, float], float, name="PDIV")
 
     # pset.addPrimitive(operator.add, [int, int], float, name="FLOAT")
     pset.addPrimitive(codeNode, ([float] * 8), int)
@@ -255,6 +326,11 @@ def createToolbox(train_targets, train_features):
     creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMax)
 
     toolbox = base.Toolbox()
+
+    # toolbox.register("map", futures.map)
+    # pool = multiprocessing.Pool()
+    # toolbox.register("map", pool.map)
+
     toolbox.register("expr", gp.genHalfAndHalf, pset=pset, min_=1, max_=2) #TODO what min/max are?
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr)
 
@@ -262,11 +338,11 @@ def createToolbox(train_targets, train_features):
     toolbox.register("compile", gp.compile, pset=pset)
 
      # TODO: fitnessFunction method
-    toolbox.register("evaluate", fitnessFunc, toolbox=toolbox, features=train_features,targets=train_targets) # todo: train target?
+    toolbox.register("evaluate", fitnessFunc, toolbox=toolbox, features=train_features,targets=train_targets)
     toolbox.register("select", tools.selTournament, tournsize=5)
-    toolbox.register("mate", gp.cxOnePoint) #TODO verify this is best
-    toolbox.register("expr_mut", gp.genHalfAndHalf, min_ = 0, max_ = 2) #TODO half and half?
-    toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset = pset) #TODO ????
+    toolbox.register("mate", gp.cxOnePoint)
+    toolbox.register("expr_mut", gp.genHalfAndHalf, min_ = 0, max_ = 2)
+    toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset = pset)
 
     # set max height (TODO: verify min height)
     toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
@@ -286,7 +362,7 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     stats.register("std", numpy.std)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
-    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 50, stats, halloffame=hof, verbose=False) # TODO corssover 0.8, mutation 0.19, reproduction 0.01
+    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 50, stats, halloffame=hof, verbose=True)
 
     print("HOF:", hof[0])
     # print(train_targets)
