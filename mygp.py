@@ -84,14 +84,8 @@ def generateFeatureVector(length, func, features):
     """
     feature_vector = [0] * length
 
-    # print(len(features))
-    # image_count = 10 #TODO NOT HARDCODED
-
     for i in range(len(features)):
-        # print("feat vec", i, func(*features[i]), targets[i])
         pos = int(func(*features[i]))
-
-        # print(str(func))
         feature_vector[pos] += 1
 
     return feature_vector
@@ -182,9 +176,6 @@ def distanceBetweenAndWithin(set):
     dist_within /= (total_inst * (total_inst - inst_per_class))
     dist_between /= (total_inst * (inst_per_class - 1))
 
-    # if dist_within != 0 or dist_between !=0:
-    #     print("!!!!!", dist_within, dist_between)
-
     return dist_within, dist_between
 
 
@@ -259,15 +250,9 @@ def createToolbox(train_targets, train_features):
     # pset.addPrimitive(operator.add, [int, int], float, name="FLOAT")
     pset.addPrimitive(codeNode, ([float] * 8), int)
 
-    # define terminal set (TODO: hard coded to 2^3 as 3 for codenode)
+    # define terminal set
     for i in range(pow(2, 8)):
         pset.addTerminal(i, int)
-
-    # pset.addTerminal("jute", str)
-    # pset.addTerminal("maize", str)
-    # pset.addTerminal("rice", str)
-    # pset.addTerminal("sugarcane", str)
-    # pset.addTerminal("wheat", str)
 
     # creates fitness and individual classes
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -291,10 +276,6 @@ def createToolbox(train_targets, train_features):
     toolbox.register("expr_mut", gp.genHalfAndHalf, min_ = 2, max_ = 10) #TODO check if these constraints are necessary
     toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset = pset)
 
-    # set max height (TODO: verify min height)
-    # toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), min_value=2, max_value=10))
-    # toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), min_value=2, max_value=10))
-
     return toolbox
 
 
@@ -309,12 +290,13 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     stats.register("std", numpy.std)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
-    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 20, stats, halloffame=hof, verbose=True) #TODO: 50 gens
+    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 10, stats, halloffame=hof, verbose=True) #TODO: 50 gens
 
     print("HOF:", hof[0])
 
     print("Training Accuracy:", fitnessFunc(hof[0], toolbox, train_features, train_targets)[0], "%.")
-    # print("Test Accuracy:", fitnessFunc(hof[0], toolbox, test_features[:2], test_targets)[0], "%.")
+    print(len(test_features), len(test_targets))
+    print("Test Accuracy:", fitnessFunc(hof[0], toolbox, test_features, test_targets)[0], "%.")
 
 
 def removeDuplicates(list):
@@ -381,6 +363,7 @@ if __name__ == "__main__":
 
     test_features = normalizeInput(test_features)
     train_features = normalizeInput(train_features)
+
 
     # start timing method
     start_time = time.time()
