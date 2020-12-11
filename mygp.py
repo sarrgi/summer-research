@@ -327,14 +327,59 @@ def normalizeInput(l):
     return l
 
 
-# def strToTuple():
+def convertTupleString(s):
+    """
+    Convert a string of tuples into a list of tuple objects.
+    Used for reading in color csv values.
+
+    Params:
+        - `list of `str`` : list of strings which are tuples
+    """
+
+    pixel_list = []
+    for t in s:
+        # strip parens
+        t = t.strip("()")
+        # get values
+        split = t.split(",")
+        a = [int(x) for x in split]
+        # convert to tuples and add to list
+        pixels = tuple(a)
+        pixel_list.append(pixels)
+        # print(pixels)
+    return pixel_list
 
 
 if __name__ == "__main__":
 
+    # read into features and targets
+    train_targets, train_features = readCSV("test_data/5x5trainColor.csv")
+    # convert from str to tuple
+    for t in range(len(train_features)):
+        train_features[t] = convertTupleString(train_features[t])
+    # remove duplicates
+    train_targets = removeDuplicates(train_targets)
 
+    # read into features and targets
     test_targets, test_features = readCSV("test_data/5x5testColor.csv")
-    print(tuple(test_features[0][0]))
+    # convert from str to tuple
+    for t in range(len(test_features)):
+        test_features[t] = convertTupleString(test_features[t])
+    # remove duplicates
+    test_targets = removeDuplicates(test_targets)
+
+
+
+
+
+
+
+
+
+
+
+    ###################### GREY SCALE METHOD BELOW #############################
+
 
     # # read into features and targets
     # train_targets, train_features = readCSV("test_data/5x5testUnique.csv")
