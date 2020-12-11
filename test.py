@@ -55,7 +55,7 @@ def loadAllImages(location):
         with open(os.path.join(os.getcwd(), filename), "r") as f:
             img = Image.open(filename)
             pix = img.load()
-            img_arr.append(pix)
+            img_arr.append(img) #TODO: pix
     return img_arr
 
 
@@ -137,11 +137,11 @@ if __name__ == "__main__":
 
 
     # load all (tiny) images
-    jute = loadAllImages("images/archive/color_crops_tiny/jute/*.jpg")
-    maize = loadAllImages("images/archive/color_crops_tiny/maize/*.jpg")
-    rice = loadAllImages("images/archive/color_crops_tiny/rice/*.jpg")
-    sugarcane = loadAllImages("images/archive/color_crops_tiny/sugarcane/*.jpg")
-    wheat = loadAllImages("images/archive/color_crops_tiny/wheat/*.jpg")
+    # jute = loadAllImages("images/archive/color_crops_tiny/jute/*.jpg")
+    # maize = loadAllImages("images/archive/color_crops_tiny/maize/*.jpg")
+    # rice = loadAllImages("images/archive/color_crops_tiny/rice/*.jpg")
+    # sugarcane = loadAllImages("images/archive/color_crops_tiny/sugarcane/*.jpg")
+    # wheat = loadAllImages("images/archive/color_crops_tiny/wheat/*.jpg")
 
     # print(len(wheat))
     # c = 0
@@ -151,66 +151,80 @@ if __name__ == "__main__":
     #     c += 1
 
 
+    mussel = loadAllImages("images/MNZ_Oyster_0061_1024.jpg")[0]
+    # mussel[0].show()
+    # print(type(mussel))
 
-    # create target lists for all images
-    jute_targets = ["jute"] * len(jute)
-    maize_targets = ["maize"] * len(maize)
-    rice_targets = ["rice"] * len(rice)
-    sugarcane_targets = ["sugarcane"] * len(sugarcane)
-    wheat_targets = ["wheat"] * len(wheat)
+    width, height = (1536, 1024)
 
-    # get image dimensions - NOTE: all images appear to be 224x224
-    width, height = getDimensions("images/archive/tiny_crop_images/maize/*.jpg")
+    x = mussel.load()
+    for i in range(width):
+        for j in range(height):
+            x[i, j] = (x[i,j][0], 0, 0)
+            # x[i, j] = (0, x[i,j][1], 0)
+            # x[i, j] = (0, 0, x[i,j][2])
 
-    # split into test and train - note: only getting first two images of each class for training
-    jute_train = jute[0:2]
-    maize_train = maize[0:2]
-    rice_train = rice[0:2]
-    sugarcane_train = sugarcane[0:2]
-    wheat_train = wheat[0:2]
+    mussel.show()
 
-    jute_test = jute[2:]
-    maize_test = maize[2:]
-    rice_test = rice[2:]
-    sugarcane_test = sugarcane[2:]
-    wheat_test = wheat[2:]
-
-    # get training data
-    train_data, train_target = mergeInputData(
-        [jute_train, maize_train, rice_train, sugarcane_train, wheat_train],
-        [jute_targets[0:2], maize_targets[0:2], rice_targets[0:2], sugarcane_targets[0:2], wheat_targets[0:2]]
-    )
-
-    # get test data
-    test_data, test_target = mergeInputData(
-        [jute_test, maize_test, rice_test, sugarcane_test, wheat_test],
-        [jute_targets[2:], maize_targets[2:], rice_targets[2:], sugarcane_targets[2:], wheat_targets[2:]]
-    )
-
-
-
-    window = (5,5)
-    tt = []
-    for i in train_data:
-        tt.append(slideWindow(i, window, (width,height), train_data, train_target))
-
-    with open("test_data/5x5trainColor.csv", "w", newline='') as file:
-        writer = csv.writer(file)
-
-        c = 0
-        for t in tt:
-            for l in t:
-                map(str, l)
-                # print(l)
-                # print([train_target[c]]+l)
-                s = ["".join((train_target[c], str(c)))]+l
-                writer.writerow(s)
-
-
-                # stri = ""
-                # for i in s:
-                #     stri += str(i) + ", "
-                # stri = stri[:-2] + "\n"
-                # print(stri)
-                # file.write(stri)
-            c += 1
+    # # create target lists for all images
+    # jute_targets = ["jute"] * len(jute)
+    # maize_targets = ["maize"] * len(maize)
+    # rice_targets = ["rice"] * len(rice)
+    # sugarcane_targets = ["sugarcane"] * len(sugarcane)
+    # wheat_targets = ["wheat"] * len(wheat)
+    #
+    # # get image dimensions - NOTE: all images appear to be 224x224
+    # width, height = getDimensions("images/archive/tiny_crop_images/maize/*.jpg")
+    #
+    # # split into test and train - note: only getting first two images of each class for training
+    # jute_train = jute[0:2]
+    # maize_train = maize[0:2]
+    # rice_train = rice[0:2]
+    # sugarcane_train = sugarcane[0:2]
+    # wheat_train = wheat[0:2]
+    #
+    # jute_test = jute[2:]
+    # maize_test = maize[2:]
+    # rice_test = rice[2:]
+    # sugarcane_test = sugarcane[2:]
+    # wheat_test = wheat[2:]
+    #
+    # # get training data
+    # train_data, train_target = mergeInputData(
+    #     [jute_train, maize_train, rice_train, sugarcane_train, wheat_train],
+    #     [jute_targets[0:2], maize_targets[0:2], rice_targets[0:2], sugarcane_targets[0:2], wheat_targets[0:2]]
+    # )
+    #
+    # # get test data
+    # test_data, test_target = mergeInputData(
+    #     [jute_test, maize_test, rice_test, sugarcane_test, wheat_test],
+    #     [jute_targets[2:], maize_targets[2:], rice_targets[2:], sugarcane_targets[2:], wheat_targets[2:]]
+    # )
+    #
+    #
+    #
+    # window = (5,5)
+    # tt = []
+    # for i in train_data:
+    #     tt.append(slideWindow(i, window, (width,height), train_data, train_target))
+    #
+    # with open("test_data/5x5trainColor.csv", "w", newline='') as file:
+    #     writer = csv.writer(file)
+    #
+    #     c = 0
+    #     for t in tt:
+    #         for l in t:
+    #             map(str, l)
+    #             # print(l)
+    #             # print([train_target[c]]+l)
+    #             s = ["".join((train_target[c], str(c)))]+l
+    #             writer.writerow(s)
+    #
+    #
+    #             # stri = ""
+    #             # for i in s:
+    #             #     stri += str(i) + ", "
+    #             # stri = stri[:-2] + "\n"
+    #             # print(stri)
+    #             # file.write(stri)
+    #         c += 1

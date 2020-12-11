@@ -203,6 +203,32 @@ def codeNode(*args):
     return d
 
 
+def codeNodeColor(*args):
+    """
+        Concept Ideas:
+        NOTE: *args is the evaluated childrne being passed through
+
+        #1
+        - there are three args: r, g, b tree
+        - each of these are efively just a code node, each with color cordinated channels
+        - each of these produce a binary string of len(2^n)
+        - this just combines three string to product binary string len(3*2^n)
+
+        #2
+        - orig code node just gets passed through 3x list of args,
+          determines on it's own which features from which channels are valuable
+
+        #3
+        - some sort of system which give priority to blue input, due to this being likely more substantial in differneing colors
+
+        #4
+        - three r, g, b tree which produce three respective histograms
+        - new input is compared to each histogram respectively and given a chosen class from each
+        - use popular vote to classify
+
+
+    """
+
 def normalizeVector(vec):
     return [float(i)/sum(vec) for i in vec]
 
@@ -367,6 +393,7 @@ if __name__ == "__main__":
         test_features[t] = convertTupleString(test_features[t])
     # remove duplicates
     test_targets = removeDuplicates(test_targets)
+
 
 
 
