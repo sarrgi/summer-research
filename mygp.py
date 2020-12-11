@@ -18,27 +18,6 @@ from deap import gp
 import multiprocessing
 
 
-debug = False
-
-
-"""
-INPUTS
-- each array of 25 long makes up one set for gp node
-- therefore toolbox requires iterable arrays of 25 long
-- each images has 36 arrays of 25 long
-
-ALL FEATURE VECTORS
-- array of image amount of feature vectors
-- 10 long
-- index key : (class, feature vector) format
-
-FEATURE VECTOR
-- each array is 2^n long
-- sum of each index should equal 36
-- should keep track of 36 arrays per image
-should
-"""
-
 def protectedDiv(left, right):
     """
     Performs regular division, with the exception of safeguarding potential division by 0 issues.
@@ -136,6 +115,7 @@ def distanceVectors(u, v):
     sum /= 2
     return sum
 
+
 def distanceBetweenAndWithin(set):
     """
     TODO:
@@ -177,7 +157,6 @@ def distanceBetweenAndWithin(set):
     dist_between /= (total_inst * (inst_per_class - 1))
 
     return dist_within, dist_between
-
 
 
 def fitnessFunc(individual, toolbox, features, targets):
@@ -347,32 +326,40 @@ def normalizeInput(l):
 
     return l
 
+
+# def strToTuple():
+
+
 if __name__ == "__main__":
 
-    # read into features and targets
-    train_targets, train_features = readCSV("test_data/5x5testUnique.csv")
-    # convert from str to int
-    train_features = [[int(i) for i in j] for j in train_features]
-    #remove duplicates
-    train_targets = removeDuplicates(train_targets)
 
-    # test
-    test_targets, test_features = readCSV("test_data/5x5testUnseen.csv")
-    test_features = [[int(i) for i in j] for j in test_features]
-    test_targets = removeDuplicates(test_targets)
+    test_targets, test_features = readCSV("test_data/5x5testColor.csv")
+    print(tuple(test_features[0][0]))
 
-    test_features = normalizeInput(test_features)
-    train_features = normalizeInput(train_features)
-
-
-    # start timing method
-    start_time = time.time()
-
-    # create toolbox (GP structure)
-    toolbox = createToolbox(train_targets, train_features)
-    # evaluate the GP
-    evaluate(toolbox, train_features, train_targets, test_features, test_targets)
-
-    # time printout
-    print("Time taken: ", "{:.2f}".format(time.time() - start_time), " seconds.", sep='')
-    time.sleep(3)
+    # # read into features and targets
+    # train_targets, train_features = readCSV("test_data/5x5testUnique.csv")
+    # # convert from str to int
+    # train_features = [[int(i) for i in j] for j in train_features]
+    # #remove duplicates
+    # train_targets = removeDuplicates(train_targets)
+    #
+    # # test
+    # test_targets, test_features = readCSV("test_data/5x5testUnseen.csv")
+    # test_features = [[int(i) for i in j] for j in test_features]
+    # test_targets = removeDuplicates(test_targets)
+    #
+    # test_features = normalizeInput(test_features)
+    # train_features = normalizeInput(train_features)
+    #
+    #
+    # # start timing method
+    # start_time = time.time()
+    #
+    # # create toolbox (GP structure)
+    # toolbox = createToolbox(train_targets, train_features)
+    # # evaluate the GP
+    # evaluate(toolbox, train_features, train_targets, test_features, test_targets)
+    #
+    # # time printout
+    # print("Time taken: ", "{:.2f}".format(time.time() - start_time), " seconds.", sep='')
+    # time.sleep(3)
