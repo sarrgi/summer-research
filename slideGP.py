@@ -1,7 +1,8 @@
 import mygp
 import test
+import time
 
-# GP
+
 if __name__ == "__main__":
     window = (5,5)
 
@@ -48,15 +49,33 @@ if __name__ == "__main__":
     )
 
     # get terminal set from training data
-    terminal_set = []
+    train_terminal_set = []
     for image in train_features:
-        terminal_set.append(test.slideWindow(image, window, (width,height), train_features, train_targets))
+        slide = test.slideWindow(image, window, (width,height), train_features, train_targets)
+        for i in slide:
+            train_terminal_set.append(i)
 
-    # print(train_targets)
-    # print(terminal_set)
+    # get terminal set from training data
+    test_terminal_set = []
+    for image in test_features:
+        slide = test.slideWindow(image, window, (width,height), test_features, test_targets)
+        for i in slide:
+            test_terminal_set.append(i)
 
 
+    train_targets = mygp.removeDuplicates(train_targets)
+    test_targets = mygp.removeDuplicates(test_targets)
 
-    # gp
-    toolbox = mygp.createToolbox(train_targets, terminal_set)
-    mygp.evaluate(toolbox, train_targets, train_features, train_targets, train_features)
+    train_features = mygp.normalizeInput(train_terminal_set)
+    test_features = mygp.normalizeInput(test_terminal_set)
+
+
+    start_time = time.time()
+
+    # create toolbox (GP structure)
+    toolbox = mygp.createToolbox(train_targets, train_features)
+    # evaluate the GP
+    mygp.evaluate(toolbox, train_features, train_targets, test_features, test_targets)
+
+    # time printout
+    print("Time taken: ", "{:.2f}".format(time.time() - start_time), " seconds.", sep='')

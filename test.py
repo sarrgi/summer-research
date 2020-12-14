@@ -55,7 +55,7 @@ def loadAllImages(location):
         with open(os.path.join(os.getcwd(), filename), "r") as f:
             img = Image.open(filename)
             pix = img.load()
-            img_arr.append(img) #TODO: pix
+            img_arr.append(pix) #TODO: pix
     return img_arr
 
 
