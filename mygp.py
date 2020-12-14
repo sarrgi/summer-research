@@ -18,7 +18,7 @@ from deap import gp
 import multiprocessing
 
 
-def protectedDiv(left, right):
+def protected_div(left, right):
     """
     Performs regular division, with the exception of safeguarding potential division by 0 issues.
     In this case it will return 0. (Using 0 (and not 1) as this is specified by GP-criptor paper.)
@@ -36,7 +36,7 @@ def protectedDiv(left, right):
         return 0
 
 
-def convertToDecimal(binary_string):
+def convert_to_decimal(binary_string):
     """
     Converts a binary string into its corresponding integer value.
 
@@ -49,7 +49,7 @@ def convertToDecimal(binary_string):
     return int(binary_string, 2)
 
 
-def generateFeatureVector(length, func, features):
+def generate_feature_vector(length, func, features):
     """
     Generate a single feature vector from a single image.
 
@@ -70,7 +70,7 @@ def generateFeatureVector(length, func, features):
     return feature_vector
 
 
-def generateAllFeatureVectors(individual, toolbox, features, targets):
+def generate_all_feature_vectors(individual, toolbox, features, targets):
     """
     Generate the feature vector for all images in the training set.
 
@@ -92,12 +92,12 @@ def generateAllFeatureVectors(individual, toolbox, features, targets):
         # get current image's features from  list - TODO NOT HARDCODED
         current_features = features[(i*36) : (i+1)*36]
         # create feature vector from current images
-        feature_vectors[i] = (target, generateFeatureVector(pow(2, 8), func, current_features))
+        feature_vectors[i] = (target, generate_feature_vector(pow(2, 8), func, current_features))
 
     return feature_vectors
 
 
-def distanceVectors(u, v):
+def distance_vectors(u, v):
     """
     Calculate the distance between to vectors.
     Note: requires len(u) == len(v)
@@ -105,8 +105,8 @@ def distanceVectors(u, v):
     sum = 0
 
     # normalize feature vector
-    u = normalizeVector(u)
-    v = normalizeVector(v)
+    u = normalize_vector(u)
+    v = normalize_vector(v)
 
     for i in range(len(u)):
         if u[i] + v[i] != 0: #avoid divide by 0 errors
@@ -116,7 +116,7 @@ def distanceVectors(u, v):
     return sum
 
 
-def distanceBetweenAndWithin(set):
+def distance_between_and_within(set):
     """
     TODO:
         - calc distanc between all feature vectors in training set
@@ -145,7 +145,7 @@ def distanceBetweenAndWithin(set):
                 continue
 
             # calc distance
-            dist = distanceVectors(current_i, compare_i)
+            dist = distance_vectors(current_i, compare_i)
 
             # add dist to respective count
             if current_c == compare_c:
@@ -159,19 +159,19 @@ def distanceBetweenAndWithin(set):
     return dist_within, dist_between
 
 
-def fitnessFunc(individual, toolbox, features, targets):
+def fitness_func(individual, toolbox, features, targets):
     """
     TODO: implement distance based fitness function (chi square only)
 
     """
-    feature_vectors = generateAllFeatureVectors(individual, toolbox, features, targets)
-    dist_within, dist_between = distanceBetweenAndWithin(feature_vectors)
+    feature_vectors = generate_all_feature_vectors(individual, toolbox, features, targets)
+    dist_within, dist_between = distance_between_and_within(feature_vectors)
 
     fit = 1 / (1 + pow(math.e, (-5 * (dist_within - dist_between))))
     return (1-fit), #TODO - check 1 minus ?
 
 
-def codeNode(*args):
+def code_node(*args):
     """
     Root node of the GP tree.
     Evaluates all children and returns a binary string based on the evaluations.
@@ -198,12 +198,12 @@ def codeNode(*args):
             binary_string = "".join((binary_string, "1"))
 
     # convert to a decimal value
-    d = convertToDecimal(binary_string)
+    d = convert_to_decimal(binary_string)
 
     return d
 
 
-def codeNodeColor(*args):
+def code_node_color(*args):
     """
         Concept Ideas:
         NOTE: *args is the evaluated childrne being passed through
@@ -233,11 +233,17 @@ def codeNodeColor(*args):
     return -1
 
 
-def normalizeVector(vec):
+def normalize_vector(vec):
+    """
+    Normalize a list (vector) so all values inside of the vector are between 0 and 1.
+
+    Args:
+        vec (list) : Vector to be normalized.
+    """
     return [float(i)/sum(vec) for i in vec]
 
 
-def createToolbox(train_targets, train_features):
+def create_toolbox(train_targets, train_features):
     """
     Create a toolbox for evolving and evaluating the GP tree.
 
@@ -254,10 +260,10 @@ def createToolbox(train_targets, train_features):
     pset.addPrimitive(operator.add, [float, float], float, name="ADD")
     pset.addPrimitive(operator.sub, [float, float], float, name="SUB")
     pset.addPrimitive(operator.mul, [float, float], float, name="MULT")
-    pset.addPrimitive(protectedDiv, [float, float], float, name="PDIV")
+    pset.addPrimitive(protected_div, [float, float], float, name="PDIV")
 
     # pset.addPrimitive(operator.add, [int, int], float, name="FLOAT")
-    pset.addPrimitive(codeNode, ([float] * 8), int)
+    pset.addPrimitive(code_node, ([float] * 8), int)
 
     # define terminal set
     for i in range(pow(2, 8)):
@@ -279,7 +285,7 @@ def createToolbox(train_targets, train_features):
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("compile", gp.compile, pset=pset)
 
-    toolbox.register("evaluate", fitnessFunc, toolbox=toolbox, features=train_features,targets=train_targets)
+    toolbox.register("evaluate", fitness_func, toolbox=toolbox, features=train_features,targets=train_targets)
     toolbox.register("select", tools.selTournament, tournsize=5)
     toolbox.register("mate", gp.cxOnePoint)
     toolbox.register("expr_mut", gp.genHalfAndHalf, min_ = 2, max_ = 10) #TODO check if these constraints are necessary
@@ -288,7 +294,7 @@ def createToolbox(train_targets, train_features):
     return toolbox
 
 
-def evaluate(toolbox, train_features, train_targets, test_features, test_targets):
+def evaluate(toolbox, train_features, train_targets, test_features, test_targets, filename, seed_val, start_time):
     """
         TODO - proper evaluation
     """
@@ -301,24 +307,28 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     stats.register("max", numpy.max)
     pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 10, stats, halloffame=hof, verbose=True) #TODO: 50 gens
 
-    output_file = open("output.txt", "w")
+    output_file = open(filename, "w")
 
+    output_file.write("".join(("Seed Value:", str(seed_val), "\n")))
     output_file.write("HOF: \n")
     output_file.write(str(hof[0]))
 
     output_file.write("\nTraining Accuracy:")
-    output_file.write(str(fitnessFunc(hof[0], toolbox, train_features, train_targets)[0]))
+    output_file.write(str(fitness_func(hof[0], toolbox, train_features, train_targets)[0]))
     output_file.write("\nTest Accuracy:")
-    output_file.write(str(fitnessFunc(hof[0], toolbox, test_features, test_targets)[0]))
+    output_file.write(str(fitness_func(hof[0], toolbox, test_features, test_targets)[0]))
+
+    output_file.write("".join(("\nTime taken: ", "{:.2f}".format(time.time() - start_time), " seconds.")))
     output_file.write("\n--------------------------")
 
     output_file.close()
 
-def removeDuplicates(list):
+
+def remove_duplicates(list):
     """
     Removes the duplicates of a list.
 
-    Params:
+    Args:
         list (`list` of obj): Any list.
 
     Returns:
@@ -329,7 +339,7 @@ def removeDuplicates(list):
     return [x for x in list if not (x in seen or seen_add(x))]
 
 
-def readCSV(file_name):
+def read_CSV(file_name):
     """
     Read the csv and split into target and feature lists.
 
@@ -352,26 +362,32 @@ def readCSV(file_name):
     return train_targets, train_features
 
 
-def normalizeInput(l):
+def normalize_input(input):
+    """
+    Normalize the list of an image input value.
+    Normalizes based on the 0-255 range of possible color values.
+
+    Args:
+        file_name (`list` of int): The name (and directory) of file to be opened.
+    """
     min = 0
     max = 255
 
-    for set in l:
+    for set in input:
         for i in range(len(set)):
             set[i] = (set[i]-min) / (max-min)
 
-    return l
+    return input
 
 
-def convertTupleString(s):
+def convert_tuple_string(s):
     """
     Convert a string of tuples into a list of tuple objects.
     Used for reading in color csv values.
 
-    Params:
+    Args:
         - `list of `str`` : list of strings which are tuples
     """
-
     pixel_list = []
     for t in s:
         # strip parens
@@ -382,11 +398,11 @@ def convertTupleString(s):
         # convert to tuples and add to list
         pixels = tuple(a)
         pixel_list.append(pixels)
-        # print(pixels)
+
     return pixel_list
 
 
-def tuplesToList(tuples):
+def tuples_to_list(tuples):
     """
     Converts a list of tuples into a singular list.
     List is ordered: R0 -> RN -> G0 -> GN -> B0 -> BN.
@@ -401,45 +417,42 @@ def tuplesToList(tuples):
 if __name__ == "__main__":
 
     # read into features and targets
-    train_targets, train_features = readCSV("test_data/5x5trainColor.csv")
+    train_targets, train_features = read_CSV("test_data/5x5trainColor.csv")
     # convert from str to tuple
     for t in range(len(train_features)):
-        train_features[t] = convertTupleString(train_features[t])
+        train_features[t] = convert_tuple_string(train_features[t])
     # remove duplicates
-    train_targets = removeDuplicates(train_targets)
+    train_targets = remove_duplicates(train_targets)
 
     # read into features and targets
-    test_targets, test_features = readCSV("test_data/5x5testColor.csv")
+    test_targets, test_features = read_CSV("test_data/5x5testColor.csv")
     # convert from str to tuple
     for t in range(len(test_features)):
-        test_features[t] = convertTupleString(test_features[t])
+        test_features[t] = convert_tuple_string(test_features[t])
     # remove duplicates
-    test_targets = removeDuplicates(test_targets)
+    test_targets = remove_duplicates(test_targets)
 
-
-    # print(train_features[0])
-    # print(tuplesToList(train_fseatures[0]))
 
     rgb_train = []
     for t in train_features:
-        rgb_train.append(tuplesToList(t))
+        rgb_train.append(tuples_to_list(t))
 
     rgb_test = []
     for t in test_features:
-        rgb_test.append(tuplesToList(t))
+        rgb_test.append(tuples_to_list(t))
 
     # print(rgb_train[0])
-    rgb_train = normalizeInput(rgb_train)
-    rgb_test = normalizeInput(rgb_test)
+    rgb_train = normalize_input(rgb_train)
+    rgb_test = normalize_input(rgb_test)
     # print(rgb_train[0])
 
     # start timing method
     start_time = time.time()
 
     # create toolbox (GP structure)
-    toolbox = createToolbox(train_targets, rgb_train)
+    toolbox = create_toolbox(train_targets, rgb_train)
     # evaluate the GP
-    evaluate(toolbox, rgb_train, train_targets, rgb_test, test_targets)
+    evaluate(toolbox, rgb_train, train_targets, rgb_test, test_targets, "output.txt", seed_val)
 
     # time printout
     print("Time taken: ", "{:.2f}".format(time.time() - start_time), " seconds.", sep='')
@@ -454,26 +467,26 @@ if __name__ == "__main__":
 
 
     # # read into features and targets
-    # train_targets, train_features = readCSV("test_data/5x5testUnique.csv")
+    # train_targets, train_features = read_CSV("test_data/5x5testUnique.csv")
     # # convert from str to int
     # train_features = [[int(i) for i in j] for j in train_features]
     # #remove duplicates
-    # train_targets = removeDuplicates(train_targets)
+    # train_targets = remove_duplicates(train_targets)
     #
     # # test
-    # test_targets, test_features = readCSV("test_data/5x5testUnseen.csv")
+    # test_targets, test_features = read_CSV("test_data/5x5testUnseen.csv")
     # test_features = [[int(i) for i in j] for j in test_features]
-    # test_targets = removeDuplicates(test_targets)
+    # test_targets = remove_duplicates(test_targets)
     #
-    # test_features = normalizeInput(test_features)
-    # train_features = normalizeInput(train_features)
+    # test_features = normalize_input(test_features)
+    # train_features = normalize_input(train_features)
     #
     #
     # # start timing method
     # start_time = time.time()
     #
     # # create toolbox (GP structure)
-    # toolbox = createToolbox(train_targets, train_features)
+    # toolbox = create_toolbox(train_targets, train_features)
     # # evaluate the GP
     # evaluate(toolbox, train_features, train_targets, test_features, test_targets)
     #
