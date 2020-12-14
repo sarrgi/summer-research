@@ -229,6 +229,10 @@ def codeNodeColor(*args):
 
     """
 
+
+    return -1
+
+
 def normalizeVector(vec):
     return [float(i)/sum(vec) for i in vec]
 
@@ -297,12 +301,18 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     stats.register("max", numpy.max)
     pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 10, stats, halloffame=hof, verbose=True) #TODO: 50 gens
 
-    print("HOF:", hof[0])
+    output_file = open("output.txt", "w")
 
-    print("Training Accuracy:", fitnessFunc(hof[0], toolbox, train_features, train_targets)[0], "%.")
-    print(len(test_features), len(test_targets))
-    print("Test Accuracy:", fitnessFunc(hof[0], toolbox, test_features, test_targets)[0], "%.")
+    output_file.write("HOF: \n")
+    output_file.write(str(hof[0]))
 
+    output_file.write("\nTraining Accuracy:")
+    output_file.write(str(fitnessFunc(hof[0], toolbox, train_features, train_targets)[0]))
+    output_file.write("\nTest Accuracy:")
+    output_file.write(str(fitnessFunc(hof[0], toolbox, test_features, test_targets)[0]))
+    output_file.write("\n--------------------------")
+
+    output_file.close()
 
 def removeDuplicates(list):
     """
@@ -376,6 +386,18 @@ def convertTupleString(s):
     return pixel_list
 
 
+def tuplesToList(tuples):
+    """
+    Converts a list of tuples into a singular list.
+    List is ordered: R0 -> RN -> G0 -> GN -> B0 -> BN.
+    """
+    red = [x[0] for x in tuples]
+    green = [x[1] for x in tuples]
+    blue = [x[2] for x in tuples]
+
+    return red + green + blue
+
+
 if __name__ == "__main__":
 
     # read into features and targets
@@ -395,10 +417,33 @@ if __name__ == "__main__":
     test_targets = removeDuplicates(test_targets)
 
 
+    # print(train_features[0])
+    # print(tuplesToList(train_fseatures[0]))
 
+    rgb_train = []
+    for t in train_features:
+        rgb_train.append(tuplesToList(t))
 
+    rgb_test = []
+    for t in test_features:
+        rgb_test.append(tuplesToList(t))
 
+    # print(rgb_train[0])
+    rgb_train = normalizeInput(rgb_train)
+    rgb_test = normalizeInput(rgb_test)
+    # print(rgb_train[0])
 
+    # start timing method
+    start_time = time.time()
+
+    # create toolbox (GP structure)
+    toolbox = createToolbox(train_targets, rgb_train)
+    # evaluate the GP
+    evaluate(toolbox, rgb_train, train_targets, rgb_test, test_targets)
+
+    # time printout
+    print("Time taken: ", "{:.2f}".format(time.time() - start_time), " seconds.", sep='')
+    time.sleep(3)
 
 
 
