@@ -286,7 +286,7 @@ def create_toolbox(train_targets, train_features):
     toolbox.register("compile", gp.compile, pset=pset)
 
     toolbox.register("evaluate", fitness_func, toolbox=toolbox, features=train_features,targets=train_targets)
-    toolbox.register("select", tools.selTournament, tournsize=5)
+    toolbox.register("select", tools.selTournament, tournsize=7)
     toolbox.register("mate", gp.cxOnePoint)
     toolbox.register("expr_mut", gp.genHalfAndHalf, min_ = 2, max_ = 10) #TODO check if these constraints are necessary
     toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset = pset)
@@ -301,14 +301,14 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     """
         TODO - proper evaluation
     """
-    pop = toolbox.population(n=400) #TODO: 500
+    pop = toolbox.population(n=100) #TODO: 500
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", numpy.mean)
     stats.register("std", numpy.std)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
-    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 20, stats, halloffame=hof, verbose=True) #TODO: 50 gens
+    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 1, stats, halloffame=hof, verbose=True) #TODO: 30 gens
 
     output_file = open(filename, "w")
 
