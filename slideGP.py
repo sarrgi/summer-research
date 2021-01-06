@@ -38,6 +38,10 @@ class Obj:
     def __init__(self, i, n):
         self.image = i
         self.name = n
+        self.dimensions = -1
+
+    def set_dimensions(self, d):
+        self.dimensions = d
 
 
 def loadAllImagesLocal(location):
@@ -73,16 +77,25 @@ if __name__ == "__main__":
     # define window size
     window = (5,5)
 
-    # load all images
-    directories = glob.glob("/vol/grid-solar/sgeusers/sargisfinl/data/cropped_and_sorted/*/")
+    # get class directories
+    directories = glob.glob("/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_grey/*/") #"/vol/grid-solar/sgeusers/sargisfinl/data/cropped_and_sorted/*/" sorted_by_class_shell_0
+
     images = []
     for d in directories:
+        # create directory link
         dir = d.strip("\\")
         dir = dir.replace("\\", "/")
         dir = dir + "/*.jpg"
-        # print(dir)
-        # print(dir)
-        images.append(loadAllImagesLocal(dir))
+        # get all images
+        ims = loadAllImagesLocal(dir)
+        # get all dimensions
+        dimensions = test.getAllDimensions(dir)
+        # add image dimensions
+        for i in range(len(ims)):
+            ims[i].set_dimensions(dimensions[i])
+        # store images
+        images.append(ims)
+
 
     # create all targets
     targets = []
@@ -93,9 +106,6 @@ if __name__ == "__main__":
             # create target list
             if i == 0:
                 targets.append([class_type] * len(c))
-
-    # get image dimensions
-    width, height = test.getDimensions("/vol/grid-solar/sgeusers/sargisfinl/data/cropped_and_sorted/class_4/*.jpg")
 
     # split targets into test and train
     train_targets = []
@@ -123,25 +133,25 @@ if __name__ == "__main__":
     train_features, train_targets = test.mergeInputData(train_features,train_targets)
     test_features, test_targets = test.mergeInputData(test_features,test_targets)
 
-    # load images
+    # load images and keep track of size
     for i, t in enumerate(train_features):
-        train_features[i] = t.load()
+        train_features[i] = (t.load(), train_features[i].size)
     for i, t in enumerate(test_features):
-        test_features[i] = t.load()
+        test_features[i] = (t.load(), test_features[i].size)
 
     # get terminal set from training data
     print("Getting Training Set.")
     train_terminal_set = []
-    for image in train_features:
-        sw = slide.slide_window(image, window, (width,height), train_features, train_targets)
+    for i in range(len(train_features)):
+        sw = slide.slide_window(train_features[i][0], window, train_features[i][1])
         for i in sw:
             train_terminal_set.append(i)
 
     # get terminal set from test data
     print("Getting Test Set.")
     test_terminal_set = []
-    for image in test_features:
-        sw = slide.slide_window(image, window, (width,height), test_features, test_targets)
+    for i in range(len(test_features)):
+        sw = slide.slide_window(test_features[i][0], window, test_features[i][1])
         for i in sw:
             test_terminal_set.append(i)
 

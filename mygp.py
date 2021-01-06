@@ -308,7 +308,7 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     stats.register("std", numpy.std)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
-    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 1, stats, halloffame=hof, verbose=True) #TODO: 30 gens
+    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 10, stats, halloffame=hof, verbose=True) #TODO: 30 gens
 
     output_file = open(filename, "w")
 

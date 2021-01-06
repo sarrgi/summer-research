@@ -24,7 +24,7 @@ def create_greyscale(location):
         with open(os.path.join(os.getcwd(), filename), "r") as f:
             img = Image.open(filename)
             img = img.convert("L")
-            img.save(filename[0:-5]+"_grey.jpg") #note 5 as ".jpeg", likely change for actual data
+            img.save(filename[0:-4]+"_grey.jpg") #note 5 as ".jpeg", 4 as.jpg, likely change for actual data
 
 
 def get_dimensions(location):
@@ -63,7 +63,7 @@ def merge_input_data(dataList, targetList):
 
 
 
-def slide_window(image, window, img_dimensions, train_data, train_target):
+def slide_window(image, window, img_dimensions):
     """
     Notes:
         - currently just slides along and creates the terminal set for each window

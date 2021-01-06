@@ -6,6 +6,7 @@ import numpy
 import csv
 from math import floor
 from PIL import Image
+import slide
 
 from deap import algorithms
 from deap import base
@@ -35,7 +36,7 @@ def createGreyscale(location):
 
 def getDimensions(location):
     """
-    Return the width and height of the first found image in a loction.
+    Return the width and height of the first found image in a location.
     """
     for filename in glob.glob(location):
         with open(os.path.join(os.getcwd(), filename), "r") as f:
@@ -44,6 +45,17 @@ def getDimensions(location):
             return img.size
     # error state
     return -1,-1
+
+def getAllDimensions(location):
+    """
+    Return the width and height of all the images in a location.
+    """
+    dimensions = []
+    for filename in glob.glob(location):
+        with open(os.path.join(os.getcwd(), filename), "r") as f:
+            img = Image.open(filename)
+            dimensions.append(img.size)
+    return dimensions
 
 
 def loadAllImages(location):
@@ -134,7 +146,14 @@ def slideWindow(image, window, img_dimensions, train_data, train_target):
 
 if __name__ == "__main__":
 
+    directories = glob.glob("sorted_by_class_shell_1_gray/*/")
 
+    for d in directories:
+        dir = d.strip("\\")
+        dir = dir.replace("\\", "/")
+        dir = dir + "/*.jpg"
+
+        slide.create_greyscale(dir)
 
     # load all (tiny) images
     # jute = loadAllImages("images/archive/color_crops_tiny/jute/*.jpg")
@@ -151,20 +170,20 @@ if __name__ == "__main__":
     #     c += 1
 
 
-    mussel = loadAllImages("images/MNZ_Oyster_0061_1024.jpg")[0]
-    # mussel[0].show()
-    # print(type(mussel))
-
-    width, height = (1536, 1024)
-
-    x = mussel.load()
-    for i in range(width):
-        for j in range(height):
-            x[i, j] = (x[i,j][0], 0, 0)
-            # x[i, j] = (0, x[i,j][1], 0)
-            # x[i, j] = (0, 0, x[i,j][2])
-
-    mussel.show()
+    # mussel = loadAllImages("images/MNZ_Oyster_0061_1024.jpg")[0]
+    # # mussel[0].show()
+    # # print(type(mussel))
+    #
+    # width, height = (1536, 1024)
+    #
+    # x = mussel.load()
+    # for i in range(width):
+    #     for j in range(height):
+    #         x[i, j] = (x[i,j][0], 0, 0)
+    #         # x[i, j] = (0, x[i,j][1], 0)
+    #         # x[i, j] = (0, 0, x[i,j][2])
+    #
+    # mussel.show()
 
     # # create target lists for all images
     # jute_targets = ["jute"] * len(jute)
