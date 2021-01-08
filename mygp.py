@@ -70,7 +70,7 @@ def generate_feature_vector(length, func, features):
     return feature_vector
 
 
-def generate_all_feature_vectors(individual, toolbox, features, targets):
+def generate_all_feature_vectors(individual, toolbox, features, targets, dimensions):
     """
     Generate the feature vector for all images in the training set.
 
@@ -88,9 +88,12 @@ def generate_all_feature_vectors(individual, toolbox, features, targets):
 
     for i in range(len(targets)):
         # get specific class from target name
-        target = re.sub(r'[0-9]+', '', targets[i])
+        target = targets[i]#re.sub(r'[0-9]+', '', targets[i])
         # get current image's features from  list - TODO NOT HARDCODED
-        current_features = features[(i*36) : (i+1)*36]
+        # val = (width - floor(window/2)) * (height - floor(window/2))
+        # current_features = features[(i*36) : (i+1)*36]
+        size = (dimensions[i][0] - 2) * (dimensions[i][1] - 2)
+        current_features = features[(i*size) : (i+1)*size]
         # create feature vector from current images
         feature_vectors[i] = (target, generate_feature_vector(pow(2, 8), func, current_features))
 
@@ -159,12 +162,11 @@ def distance_between_and_within(set):
     return dist_within, dist_between
 
 
-def fitness_func(individual, toolbox, features, targets):
+def fitness_func(individual, toolbox, features, targets, dimensions):
     """
     TODO: implement distance based fitness function (chi square only)
-
     """
-    feature_vectors = generate_all_feature_vectors(individual, toolbox, features, targets)
+    feature_vectors = generate_all_feature_vectors(individual, toolbox, features, targets, dimensions)
     dist_within, dist_between = distance_between_and_within(feature_vectors)
 
     fit = 1 / (1 + pow(math.e, (-5 * (dist_within - dist_between))))
@@ -243,7 +245,7 @@ def normalize_vector(vec):
     return [float(i)/sum(vec) for i in vec]
 
 
-def create_toolbox(train_targets, train_features):
+def create_toolbox(train_targets, train_features, train_dims):
     """
     Create a toolbox for evolving and evaluating the GP tree.
 
@@ -285,7 +287,7 @@ def create_toolbox(train_targets, train_features):
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("compile", gp.compile, pset=pset)
 
-    toolbox.register("evaluate", fitness_func, toolbox=toolbox, features=train_features,targets=train_targets)
+    toolbox.register("evaluate", fitness_func, toolbox=toolbox, features=train_features,targets=train_targets, dimensions=train_dims)
     toolbox.register("select", tools.selTournament, tournsize=7)
     toolbox.register("mate", gp.cxOnePoint)
     toolbox.register("expr_mut", gp.genHalfAndHalf, min_ = 2, max_ = 10) #TODO check if these constraints are necessary
@@ -297,7 +299,7 @@ def create_toolbox(train_targets, train_features):
     return toolbox
 
 
-def evaluate(toolbox, train_features, train_targets, test_features, test_targets, filename, seed_val, start_time):
+def evaluate(toolbox, train_features, train_targets, test_features, test_targets, dimensions, filename, seed_val, start_time):
     """
         TODO - proper evaluation
     """
@@ -317,9 +319,9 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     output_file.write(str(hof[0]))
 
     output_file.write("\nTraining Accuracy:")
-    output_file.write(str(fitness_func(hof[0], toolbox, train_features, train_targets)[0]))
+    output_file.write(str(fitness_func(hof[0], toolbox, train_features, train_targets, dimensions)[0]))
     output_file.write("\nTest Accuracy:")
-    output_file.write(str(fitness_func(hof[0], toolbox, test_features, test_targets)[0]))
+    output_file.write(str(fitness_func(hof[0], toolbox, test_features, test_targets, dimensions)[0]))
 
     output_file.write("".join(("\nTime taken: ", "{:.2f}".format(time.time() - start_time), " seconds.")))
     output_file.write("\n--------------------------")
