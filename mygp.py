@@ -299,7 +299,7 @@ def create_toolbox(train_targets, train_features, train_dims):
     return toolbox
 
 
-def evaluate(toolbox, train_features, train_targets, test_features, test_targets, dimensions, filename, seed_val, start_time):
+def evaluate(toolbox, train_features, train_targets, test_features, test_targets, train_dimensions, test_dimensions, filename, seed_val, start_time):
     """
         TODO - proper evaluation
     """
@@ -319,9 +319,17 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     output_file.write(str(hof[0]))
 
     output_file.write("\nTraining Accuracy:")
-    output_file.write(str(fitness_func(hof[0], toolbox, train_features, train_targets, dimensions)[0]))
+
+    # print(len(dimensions), len(train_features), len(test_features))
+    # output_file.write(str(fitness_func(hof[0], toolbox, train_features, train_targets, dimensions)[0]))
+    for i in range(len(train_features)):
+        # output_file.write(str(fitness_func(hof[0], toolbox, train_features[i], train_targets[i], dimensions[i])))
+        fitness_func(hof[0], toolbox, [train_features[i]], train_targets, [train_dimensions[i]])
     output_file.write("\nTest Accuracy:")
-    output_file.write(str(fitness_func(hof[0], toolbox, test_features, test_targets, dimensions)[0]))
+    # output_file.write(str(fitness_func(hof[0], toolbox, test_features, test_targets, dimensions)[0]))
+    for i in range(len(test_features)):
+        # output_file.write(str(fitness_func(hof[0], toolbox, test_features[i], test_targets[i], dimensions[i])))
+        fitness_func(hof[0], toolbox, [test_features[i]], test_targets, [test_dimensions[i]])
 
     output_file.write("".join(("\nTime taken: ", "{:.2f}".format(time.time() - start_time), " seconds.")))
     output_file.write("\n--------------------------")

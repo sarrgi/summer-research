@@ -60,7 +60,7 @@ if __name__ == "__main__":
     # get class directories
     # "data/sorted_by_class_shell_0_grey/*/"
     # "/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_grey/*/"
-    directories = glob.glob("data/sorted_by_class_shell_0_grey/*/")
+    directories = glob.glob("images/archive/tiny_crop_images/*/")
 
     images = []
     for d in directories:
@@ -154,9 +154,7 @@ if __name__ == "__main__":
     print("Evaluating GP.")
     toolbox = mygp.create_toolbox(train_targets, train_features, train_feat_dims)
     # evaluate the GP
-
-    for i in range(len(test_features)):
-        mygp.evaluate(toolbox, train_features, train_targets, test_features[i], test_targets[i], test_feat_dims[i],"output.txt", seed_val, start_time)
+    mygp.evaluate(toolbox, train_features, train_targets, test_features, test_targets, train_feat_dims, test_feat_dims,"output.txt", seed_val, start_time)
 
 
     # # load all (tiny) images
