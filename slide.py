@@ -83,7 +83,6 @@ def slide_window(image, window, img_dimensions):
     # iterate over every image
     for i in range(buf_x, x):
         for j in range(buf_y, y):
-
             terminal_set = []
             # iterate over window
             for k in range(-buf_x, buf_x+1):

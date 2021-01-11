@@ -86,16 +86,32 @@ def generate_all_feature_vectors(individual, toolbox, features, targets, dimensi
     feature_vectors = {}
     func = toolbox.compile(expr=individual)
 
-    for i in range(len(targets)):
+    for i in range(len(dimensions)):
         # get specific class from target name
-        target = targets[i]#re.sub(r'[0-9]+', '', targets[i])
+        target = targets[i%len(targets)]#re.sub(r'[0-9]+', '', targets[i])  count
         # get current image's features from  list - TODO NOT HARDCODED
         # val = (width - floor(window/2)) * (height - floor(window/2))
-        # current_features = features[(i*36) : (i+1)*36]
-        size = (dimensions[i][0] - 2) * (dimensions[i][1] - 2)
-        current_features = features[(i*size) : (i+1)*size]
+        curr_size = (dimensions[i][0] - 4) * (dimensions[i][1] - 4)
+        #
+        previous_sizes = 0
+        for j in range(i):
+            previous_sizes += (dimensions[j][0] - 4) * (dimensions[j][1] - 4)
+        # print(i,curr_size, previous_sizes, len(features))
+
+        current_features = features[previous_sizes: (previous_sizes+curr_size)]
         # create feature vector from current images
-        feature_vectors[i] = (target, generate_feature_vector(pow(2, 8), func, current_features))
+
+        if target in feature_vectors:
+            feature_vectors[target].append(generate_feature_vector(pow(2, 8), func, current_features))
+        else:
+            feature_vectors[target] = [generate_feature_vector(pow(2, 8), func, current_features)]
+    # print("-----")
+    # print(feature_vectors)
+
+    # print(dimensions, len(features))
+    # print("-------------")
+    # print(feature_vectors)
+    # print("------------")
 
     return feature_vectors
 
@@ -128,6 +144,7 @@ def distance_between_and_within(set):
 
     class_count = len(set)
     inst_per_class = len(list(set.values())[0])
+    # print(class_count, inst_per_class, set.values())
     total_inst = class_count * inst_per_class
 
     dist_within = 0
@@ -296,7 +313,24 @@ def create_toolbox(train_targets, train_features, train_dims):
     toolbox.decorate("mate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
     toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max_value=10))
 
-    return toolbox
+    return toolbox, pset
+
+
+def train(toolbox):
+    """
+    Train the toolbox and create the best tree.
+    """
+    print("Training.")
+    pop = toolbox.population(n=100) #TODO: 500
+    hof = tools.HallOfFame(1)
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
+    stats.register("avg", numpy.mean)
+    stats.register("std", numpy.std)
+    stats.register("min", numpy.min)
+    stats.register("max", numpy.max)
+    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 10, stats, halloffame=hof, verbose=True)
+
+    return hof[0]
 
 
 def evaluate(toolbox, train_features, train_targets, test_features, test_targets, train_dimensions, test_dimensions, filename, seed_val, start_time):
@@ -310,7 +344,10 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     stats.register("std", numpy.std)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
+    print("Training.")
     pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 10, stats, halloffame=hof, verbose=True) #TODO: 30 gens
+    print("Training done.")
+    print("Evaluating.")
 
     output_file = open(filename, "w")
 
@@ -335,6 +372,39 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     output_file.write("\n--------------------------")
 
     output_file.close()
+    print("Evaluation Complete.")
+
+
+def singular_eval(best_tree, toolbox, test_features, test_dimensions, test_targets, training_features, training_dimensions, training_targets):
+    """
+    Evaluate a singular test instance against the entire trainign instance.
+    """
+    print("Singular Eval")
+    func = toolbox.compile(expr=best_tree)
+    # func(*features)
+    test_feat_vec = generate_feature_vector(pow(2, 8), func, test_features)
+    training_feat_vecs = generate_all_feature_vectors(best_tree, toolbox, training_features, training_targets, training_dimensions)
+    # need to convert feat_vec into an actual class
+    # possibly through a 1NN
+
+    print(test_feat_vec)
+    print("-----")
+    # print(training_feat_vecs)
+    for t in training_feat_vecs:
+        print(training_feat_vecs[t])
+    # nearest_neighbour(test_feat_vec, training_feat_vecs)
+
+    return -1
+
+
+
+def nearest_neighbour(individual, neighbours):
+    for n in neighbours:
+        print(n)
+        # dist = distance_vectors(individual, n)
+        # print(dist)
+
+    return -1
 
 
 def remove_duplicates(list):

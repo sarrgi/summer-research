@@ -58,9 +58,10 @@ if __name__ == "__main__":
     window = (5,5)
 
     # get class directories
+    # "images/archive/tiny_crops_uneven/*/"
     # "data/sorted_by_class_shell_0_grey/*/"
     # "/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_grey/*/"
-    directories = glob.glob("images/archive/tiny_crop_images/*/")
+    directories = glob.glob("images/archive/tiny_crops_uneven/*/")
 
     images = []
     for d in directories:
@@ -118,6 +119,9 @@ if __name__ == "__main__":
     train_features, train_targets = test.mergeInputData(train_features, train_targets)
     test_features, test_targets = test.mergeInputData(test_features, test_targets)
 
+    for i in train_features:
+        print(i)
+
     # keep track of size
     for i, t in enumerate(train_features):
         train_features[i] = (train_features[i], train_feat_dims[i])
@@ -132,74 +136,56 @@ if __name__ == "__main__":
         for i in sw:
             train_terminal_set.append(i)
 
-    # get terminal set from test data
-    print("Getting Test Set.")
-    test_terminal_set = []
-    for i in range(len(test_features)):
-        sw = slide.slide_window(test_features[i][0], window, test_features[i][1])
-        for i in sw:
-            test_terminal_set.append(i)
-
     # remove duplicates from targets
     train_targets = mygp.remove_duplicates(train_targets)
     test_targets = mygp.remove_duplicates(test_targets)
 
     # normalize input
     train_features = mygp.normalize_input(train_terminal_set)
-    test_features = mygp.normalize_input(test_terminal_set)
 
+
+
+    # Start recording time (at creation of gp tree)
     start_time = time.time()
 
     # create toolbox (GP structure)
-    print("Evaluating GP.")
-    toolbox = mygp.create_toolbox(train_targets, train_features, train_feat_dims)
-    # evaluate the GP
-    mygp.evaluate(toolbox, train_features, train_targets, test_features, test_targets, train_feat_dims, test_feat_dims,"output.txt", seed_val, start_time)
+    print("Creating Toolbox.")
+    toolbox, pset = mygp.create_toolbox(train_targets, train_features, train_feat_dims)
+
+    best_tree = mygp.train(toolbox)
+
+    print("Starting Test Set.")
+    c = 0
+    correct = 0
+    incorrect = 0
+    for i in range(len(test_features)):
+        if c > 0: break;
+        sw = slide.slide_window(test_features[i][0], window, test_features[i][1])
+        normalized = mygp.normalize_input(sw)
+
+        mygp.singular_eval(best_tree, toolbox, normalized, test_features[i][1], test_targets, train_features, train_feat_dims, train_targets)
+        c += 1
 
 
-    # # load all (tiny) images
-    # images = load_images()
-    #
-    # # create target lists for all images
-    # image_lengths = [len(x) for x in images]
-    # targets = create_targets(["jute", "maize", "rice", "sugarcane", "wheat"], image_lengths)
-    #
-    # # get image dimensions
-    # width, height = slide.get_dimensions("/vol/grid-solar/sgeusers/sargisfinl/tiny_crop_images/maize/*.jpg")
-    #
-    # # split into test and train
-    # train_data, test_data = split_dataset(images, 2)
-    # train_targs, test_targs = split_dataset(targets, 2)
-    #
-    # # merge training and test data
-    # train_features, train_targets = slide.merge_input_data(train_data, train_targs)
-    # test_features, test_targets = slide.merge_input_data(test_data, test_targs)
-    #
-    # # get terminal set from training data
-    # train_terminal_set = []
-    # for image in train_features:
-    #     sw = slide.slide_window(image, window, (width,height), train_features, train_targets)
-    #     for i in sw:
-    #         train_terminal_set.append(i)
-    #
+
+
+
+
+
+
     # # get terminal set from test data
+    # print("Getting Test Set.")
     # test_terminal_set = []
-    # for image in test_features:
-    #     sw = slide.slide_window(image, window, (width,height), test_features, test_targets)
+    # for i in range(len(test_features)):
+    #     sw = slide.slide_window(test_features[i][0], window, test_features[i][1])
     #     for i in sw:
     #         test_terminal_set.append(i)
-    #
-    # # remove duplicates from targets
-    # train_targets = mygp.remove_duplicates(train_targets)
-    # test_targets = mygp.remove_duplicates(test_targets)
-    #
-    # # normalize input
-    # train_features = mygp.normalize_input(train_terminal_set)
+
+
     # test_features = mygp.normalize_input(test_terminal_set)
-    #
-    # start_time = time.time()
-    #
-    # # create toolbox (GP structure)
-    # toolbox = mygp.create_toolbox(train_targets, train_features)
+
+    # # for t in train_features:
+    # #     print(len(train_features), t)
+
     # # evaluate the GP
-    # mygp.evaluate(toolbox, train_features, train_targets, test_features, test_targets, "output.txt", seed_val, start_time)
+    # mygp.evaluate(toolbox, train_features, train_targets, test_features, test_targets, train_feat_dims, test_feat_dims,"output.txt", seed_val, start_time)

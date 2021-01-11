@@ -7,6 +7,8 @@ import csv
 from math import floor
 from PIL import Image
 import slide
+import random
+import re
 
 from deap import algorithms
 from deap import base
@@ -67,7 +69,7 @@ def loadAllImages(location):
         with open(os.path.join(os.getcwd(), filename), "r") as f:
             img = Image.open(filename)
             pix = img.load()
-            img_arr.append(pix) #TODO: pix
+            img_arr.append(img) #TODO: pix
     return img_arr
 
 
@@ -146,14 +148,27 @@ def slideWindow(image, window, img_dimensions, train_data, train_target):
 
 if __name__ == "__main__":
 
-    directories = glob.glob("sorted_by_class_shell_1_gray/*/")
+    directories = glob.glob("images/archive/tiny_crop_images_uneven/*/")
 
     for d in directories:
         dir = d.strip("\\")
         dir = dir.replace("\\", "/")
         dir = dir + "/*.jpg"
 
-        slide.create_greyscale(dir)
+        imgs = loadAllImages(dir)
+        c = 1;
+        for i in imgs:
+            r_w = random.randint(8,10)
+            r_h = random.randint(8,10)
+
+            # print(i, dir, (r_w, r_h))
+            name_c = re.search("class_[0-9]+", dir).group(0)
+            f = "".join(("images/archive/test/", name_c, "/tiny_", str(c), ".jpg"))
+            print(f)
+            resizeImg(i, f, (r_w, r_h))
+            c += 1
+
+        # slide.create_greyscale(dir)
 
     # load all (tiny) images
     # jute = loadAllImages("images/archive/color_crops_tiny/jute/*.jpg")
