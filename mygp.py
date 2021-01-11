@@ -65,7 +65,7 @@ def generate_feature_vector(length, func, features):
 
     for i in range(len(features)):
         pos = int(func(*features[i]))
-        feature_vector[pos] += 1
+        feature_vector[pos] += (1/len(features))
 
     return feature_vector
 
@@ -328,7 +328,7 @@ def train(toolbox):
     stats.register("std", numpy.std)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
-    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 10, stats, halloffame=hof, verbose=True)
+    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 10, stats, halloffame=hof, verbose=True) #TODO: 30 gens
 
     return hof[0]
 
@@ -375,36 +375,38 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     print("Evaluation Complete.")
 
 
-def singular_eval(best_tree, toolbox, test_features, test_dimensions, test_targets, training_features, training_dimensions, training_targets):
+def singular_eval(best_tree, toolbox, test_features, test_dimensions, train_features, train_dimensions, train_targets):
     """
     Evaluate a singular test instance against the entire trainign instance.
+
+    TODO: normalize distance func?
     """
-    print("Singular Eval")
     func = toolbox.compile(expr=best_tree)
     # func(*features)
     test_feat_vec = generate_feature_vector(pow(2, 8), func, test_features)
-    training_feat_vecs = generate_all_feature_vectors(best_tree, toolbox, training_features, training_targets, training_dimensions)
+    train_feat_vecs = generate_all_feature_vectors(best_tree, toolbox, train_features, train_targets, train_dimensions)
     # need to convert feat_vec into an actual class
     # possibly through a 1NN
-
-    print(test_feat_vec)
-    print("-----")
-    # print(training_feat_vecs)
-    for t in training_feat_vecs:
-        print(training_feat_vecs[t])
-    # nearest_neighbour(test_feat_vec, training_feat_vecs)
-
-    return -1
+    predicted = nearest_neighbour(test_feat_vec, train_feat_vecs, train_targets)
+    return predicted
 
 
 
-def nearest_neighbour(individual, neighbours):
-    for n in neighbours:
-        print(n)
+def nearest_neighbour(individual, neighbours, neighbour_targets):
+    best_dist = distance_vectors(individual, neighbours[neighbour_targets[0]][0])
+    best_target = neighbour_targets[0]
+
+    for target in neighbour_targets:
+        for i in neighbours[target]:
+            dist = distance_vectors(individual, i)
         # dist = distance_vectors(individual, n)
-        # print(dist)
+            if dist < best_dist:
+                best_dist = dist
+                best_target = target
 
-    return -1
+
+    # print(best_target, best_dist)
+    return best_target
 
 
 def remove_duplicates(list):

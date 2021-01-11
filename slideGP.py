@@ -119,9 +119,6 @@ if __name__ == "__main__":
     train_features, train_targets = test.mergeInputData(train_features, train_targets)
     test_features, test_targets = test.mergeInputData(test_features, test_targets)
 
-    for i in train_features:
-        print(i)
-
     # keep track of size
     for i, t in enumerate(train_features):
         train_features[i] = (train_features[i], train_feat_dims[i])
@@ -137,13 +134,12 @@ if __name__ == "__main__":
             train_terminal_set.append(i)
 
     # remove duplicates from targets
+    train_targets_copy = train_targets
     train_targets = mygp.remove_duplicates(train_targets)
-    test_targets = mygp.remove_duplicates(test_targets)
+    # test_targets = mygp.remove_duplicates(test_targets)
 
     # normalize input
     train_features = mygp.normalize_input(train_terminal_set)
-
-
 
     # Start recording time (at creation of gp tree)
     start_time = time.time()
@@ -154,17 +150,48 @@ if __name__ == "__main__":
 
     best_tree = mygp.train(toolbox)
 
-    print("Starting Test Set.")
-    c = 0
+    # print("Starting Test Set.")
     correct = 0
     incorrect = 0
-    for i in range(len(test_features)):
-        if c > 0: break;
-        sw = slide.slide_window(test_features[i][0], window, test_features[i][1])
-        normalized = mygp.normalize_input(sw)
+    # for i in range(len(test_features)):
+    #     sw = slide.slide_window(test_features[i][0], window, test_features[i][1])
+    #     normalized = mygp.normalize_input(sw)
+    #
+    #     print(normalized)
+    #     pred = mygp.singular_eval(best_tree, toolbox, normalized, test_features[i][1], train_features, train_feat_dims, train_targets)
+    #
+    #     # print(pred, "vs", test_targets[i])
+    #     if pred == test_targets[i]:
+    #         correct += 1
+    #     else:
+    #         incorrect += 1
 
-        mygp.singular_eval(best_tree, toolbox, normalized, test_features[i][1], test_targets, train_features, train_feat_dims, train_targets)
-        c += 1
+    print("Training eval")
+
+
+    for i in range(len(train_features)):
+        curr_size = (train_feat_dims[i][0] - 4) * (train_feat_dims[i][1] - 4)
+        #
+        previous_sizes = 0
+        for j in range(i):
+            previous_sizes += (dimensions[j][0] - 4) * (dimensions[j][1] - 4)
+
+        to_eval = train_features[previous_sizes: curr_size]
+
+        # print(train_feat_dims[i])
+        # sw = sw = slide.slide_window(train_features[i], window, train_feat_dims[i])
+        # # normalized = mygp.normalize_input(sw)
+        print(train_features[i], train_feat_dims[i])
+        pred = mygp.singular_eval(best_tree, toolbox, to_eval, train_feat_dims[i], train_features, train_feat_dims, train_targets)
+
+        print(pred, "vs", train_targets_copy[i])
+        if pred == train_targets_copy[i]:
+            correct += 1
+        else:
+            incorrect += 1
+
+
+    print(correct, incorrect, correct/incorrect)
 
 
 
