@@ -124,8 +124,8 @@ def distance_vectors(u, v):
     sum = 0
 
     # normalize feature vector
-    u = normalize_vector(u)
-    v = normalize_vector(v)
+    # u = normalize_vector(u)
+    # v = normalize_vector(v)
 
     for i in range(len(u)):
         if u[i] + v[i] != 0: #avoid divide by 0 errors
@@ -144,7 +144,6 @@ def distance_between_and_within(set):
 
     class_count = len(set)
     inst_per_class = len(list(set.values())[0])
-    # print(class_count, inst_per_class, set.values())
     total_inst = class_count * inst_per_class
 
     dist_within = 0
@@ -152,29 +151,33 @@ def distance_between_and_within(set):
 
     # cycle trhough all images in set
     for key in set:
-        current_c = set[key][0]
-        current_i = set[key][1]
+        for count_1, img in enumerate(set[key]):
+            curr_img = img
 
-        # compare to all images in set
-        for key2 in set:
-            compare_c = set[key2][0]
-            compare_i = set[key2][1]
+            # compare to all images in set
+            for key2 in set:
+                for count_2, img in enumerate(set[key2]):
+                    compare_img = img
+                    # print(key, key2, count_1, count_2)
 
-            # ensure not comparing object to self
-            if key == key2:
-                continue
+                    # ensure not comparing object to self
+                    if key == key2 and count_1 == count_2:
+                        continue
 
-            # calc distance
-            dist = distance_vectors(current_i, compare_i)
+                    # calc distance
+                    dist = distance_vectors(curr_img, compare_img)
 
-            # add dist to respective count
-            if current_c == compare_c:
-                dist_within += dist
-            else:
-                dist_between += dist
+                    # add dist to respective count
+                    if key == key2:
+                        dist_within += dist
+                    else:
+                        dist_between += dist
 
-    dist_within /= (total_inst * (total_inst - inst_per_class))
-    dist_between /= (total_inst * (inst_per_class - 1))
+    # print((total_inst * (total_inst - inst_per_class)), (total_inst * (inst_per_class - 1)))
+    dist_within /= (total_inst * (inst_per_class - 1))
+    dist_between /= (total_inst * (total_inst - inst_per_class))
+
+    # print(dist_within, dist_between)
 
     return dist_within, dist_between
 
@@ -184,6 +187,7 @@ def fitness_func(individual, toolbox, features, targets, dimensions):
     TODO: implement distance based fitness function (chi square only)
     """
     feature_vectors = generate_all_feature_vectors(individual, toolbox, features, targets, dimensions)
+
     dist_within, dist_between = distance_between_and_within(feature_vectors)
 
     fit = 1 / (1 + pow(math.e, (-5 * (dist_within - dist_between))))
@@ -328,7 +332,7 @@ def train(toolbox):
     stats.register("std", numpy.std)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
-    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 10, stats, halloffame=hof, verbose=True) #TODO: 30 gens
+    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 30, stats, halloffame=hof, verbose=True) #TODO: 30 gens
 
     return hof[0]
 
