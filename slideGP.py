@@ -46,6 +46,8 @@ def split_dataset(set, n):
 
 
 if __name__ == "__main__":
+    mygp.set_code_node_children(3)
+
     # check and set seed
     if len(sys.argv) != 2:
         sys.exit("Incorrect parameter amount.")
@@ -60,8 +62,10 @@ if __name__ == "__main__":
     # get class directories
     # "images/archive/tiny_crops_uneven/*/"
     # "data/sorted_by_class_shell_0_grey/*/"
+    # "images/archive/grayscale_crops/*/"
     # "/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_grey/*/"
-    directories = glob.glob("images/archive/tiny_crops_uneven/*/")
+    # "/vol/grid-solar/sgeusers/sargisfinl/data/test/grayscale_crops/*/"
+    directories = glob.glob("/vol/grid-solar/sgeusers/sargisfinl/data/test/grayscale_crops/*/")
 
     images = []
     for d in directories:
@@ -170,6 +174,14 @@ if __name__ == "__main__":
 
     print(correct, "/", len(test_features), " acc: ", correct/incorrect, sep = "")
 
+    output_file = open("output.txt", "w")
+    output_file.write("".join(("Code Node Children: ", str(mygp.get_code_node_children()), "\n")))
+    output_file.write("".join(("Seed Value:", str(seed_val), "\n")))
+    output_file.write("Best tree: \n")
+    output_file.write(str(best_tree))
+    output_file.write("".join(("\n-----------------------\n", str(correct), "/", str(len(test_features)), " acc: ", str(correct/incorrect))))
+
+    output_file.close()
 
     # for i in range(len(train_features)):
     #     curr_size = (train_feat_dims[i][0] - 4) * (train_feat_dims[i][1] - 4)

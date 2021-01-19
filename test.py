@@ -146,29 +146,99 @@ def slideWindow(image, window, img_dimensions, train_data, train_target):
 #                 writer.writerow([train_target[c]]+l)
 #             c += 1
 
+
+class Obj:
+    def __init__(self, i, n):
+        self.image = i
+        self.name = n
+        self.dimensions = -1
+
+    def set_dimensions(self, d):
+        self.dimensions = d
+
+def loadAllImagesLocal(location):
+    """
+    Iterate over all images in specified location, open and return them inside a list.
+    """
+    img_arr = []
+    for filename in glob.glob(location):
+        with open(os.path.join(os.getcwd(), filename), "r") as f:
+            img = Image.open(filename)
+            pix = img.load()
+            img_arr.append(Obj(pix, filename))
+        f.close()
+    return img_arr
+
+
 if __name__ == "__main__":
 
-    directories = glob.glob("images/archive/tiny_crop_images_uneven/*/")
+    directories = glob.glob("images/archive/grayscale_crops/*/")
 
+    images = []
     for d in directories:
+        # create directory link
         dir = d.strip("\\")
         dir = dir.replace("\\", "/")
         dir = dir + "/*.jpg"
+        # get all images
+        ims = loadAllImagesLocal(dir)
+        # get all dimensions
+        dimensions = getAllDimensions(dir)
+        # add image dimensions
+        for i in range(len(ims)):
+            ims[i].set_dimensions(dimensions[i])
+        # store images
+        images.append(ims)
 
-        imgs = loadAllImages(dir)
-        c = 1;
-        for i in imgs:
-            r_w = random.randint(8,10)
-            r_h = random.randint(8,10)
 
-            # print(i, dir, (r_w, r_h))
-            name_c = re.search("class_[0-9]+", dir).group(0)
-            f = "".join(("images/archive/test/", name_c, "/tiny_", str(c), ".jpg"))
-            print(f)
-            resizeImg(i, f, (r_w, r_h))
-            c += 1
+    for img_class in images:
+        for image in img_class:
+            print(image.name, image.image)
 
-        # slide.create_greyscale(dir)
+        # create all targets
+        targets = []
+        for c in images:
+            for i, im in enumerate(c):
+                # get target name
+                class_type = re.search("class_[0-9]+", im.name).group(0)
+                # create target list
+                if i == 0:
+                    targets.append([class_type] * len(c))
+
+    # split targets into test and train
+    train_targets = []
+    test_targets = []
+    for t in range(len(targets)):
+        train_targets.append(targets[t][0:2])
+        test_targets.append(targets[t][2:])
+
+
+
+    # split images into test and train
+    train_features = []
+    train_feat_dims = []
+    test_features = []
+    test_feat_dims = []
+    for i in images:
+        train_row_imgs = []
+        test_row_imgs = []
+        for count, j in enumerate(i):
+            if count < 2:
+                train_row_imgs.append(i[count].image)
+                train_feat_dims.append(i[count].dimensions)
+            else:
+                test_row_imgs.append(i[count].image)
+                test_feat_dims.append(i[count].dimensions)
+        train_features.append(train_row_imgs)
+        test_features.append(test_row_imgs)
+
+
+    # merge test and training data
+    train_features, train_targets = test.mergeInputData(train_features, train_targets)
+    test_features, test_targets = test.mergeInputData(test_features, test_targets)
+
+
+    # predicted = mygp.nearest_neighbour(test_feat_vec, train_feat_vecs, train_targets)
 
     # load all (tiny) images
     # jute = loadAllImages("images/archive/color_crops_tiny/jute/*.jpg")

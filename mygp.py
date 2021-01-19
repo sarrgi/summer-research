@@ -17,6 +17,14 @@ from deap import gp
 # from scoop import futures
 import multiprocessing
 
+code_node_children = 8
+
+def get_code_node_children():
+    return code_node_children
+
+def set_code_node_children(x):
+    global code_node_children
+    code_node_children = x
 
 def protected_div(left, right):
     """
@@ -61,12 +69,14 @@ def generate_feature_vector(length, func, features):
     Returns:
         Feature vector.
     """
+    # print(len(features), length)
     feature_vector = [0] * length
 
     for i in range(len(features)):
         pos = int(func(*features[i]))
         feature_vector[pos] += (1/len(features))
 
+    # print(feature_vector)
     return feature_vector
 
 
@@ -102,9 +112,9 @@ def generate_all_feature_vectors(individual, toolbox, features, targets, dimensi
         # create feature vector from current images
 
         if target in feature_vectors:
-            feature_vectors[target].append(generate_feature_vector(pow(2, 8), func, current_features))
+            feature_vectors[target].append(generate_feature_vector(pow(2, code_node_children), func, current_features))
         else:
-            feature_vectors[target] = [generate_feature_vector(pow(2, 8), func, current_features)]
+            feature_vectors[target] = [generate_feature_vector(pow(2, code_node_children), func, current_features)]
     # print("-----")
     # print(feature_vectors)
 
@@ -114,6 +124,8 @@ def generate_all_feature_vectors(individual, toolbox, features, targets, dimensi
     # print("------------")
 
     return feature_vectors
+
+
 
 
 def distance_vectors(u, v):
@@ -156,6 +168,7 @@ def distance_between_and_within(set):
 
             # compare to all images in set
             for key2 in set:
+
                 for count_2, img in enumerate(set[key2]):
                     compare_img = img
                     # print(key, key2, count_1, count_2)
@@ -166,6 +179,7 @@ def distance_between_and_within(set):
 
                     # calc distance
                     dist = distance_vectors(curr_img, compare_img)
+                    # print("Keys:", key, key2, "- Counts:", count_1, count_2, "- Dist:", dist)
 
                     # add dist to respective count
                     if key == key2:
@@ -174,6 +188,7 @@ def distance_between_and_within(set):
                         dist_between += dist
 
     # print((total_inst * (total_inst - inst_per_class)), (total_inst * (inst_per_class - 1)))
+    # print(dist_within, dist_between, (total_inst * (inst_per_class - 1)), (total_inst * (total_inst - inst_per_class)))
     dist_within /= (total_inst * (inst_per_class - 1))
     dist_between /= (total_inst * (total_inst - inst_per_class))
 
@@ -186,12 +201,17 @@ def fitness_func(individual, toolbox, features, targets, dimensions):
     """
     TODO: implement distance based fitness function (chi square only)
     """
+
+    # print("----")
     feature_vectors = generate_all_feature_vectors(individual, toolbox, features, targets, dimensions)
+
+    # print(len(feature_vectors['class_1'][0]))
+
 
     dist_within, dist_between = distance_between_and_within(feature_vectors)
 
     fit = 1 / (1 + pow(math.e, (-5 * (dist_within - dist_between))))
-    return (1-fit), #TODO - check 1 minus ?
+    return 1-fit, #TODO - check 1 minus ?
 
 
 def code_node(*args):
@@ -286,10 +306,10 @@ def create_toolbox(train_targets, train_features, train_dims):
     pset.addPrimitive(protected_div, [float, float], float, name="PDIV")
 
     # pset.addPrimitive(operator.add, [int, int], float, name="FLOAT")
-    pset.addPrimitive(code_node, ([float] * 8), int)
+    pset.addPrimitive(code_node, ([float] * code_node_children), int)
 
     # define terminal set
-    for i in range(pow(2, 8)):
+    for i in range(pow(2, code_node_children)):
         pset.addTerminal(i, int)
 
     # creates fitness and individual classes
@@ -387,10 +407,14 @@ def singular_eval(best_tree, toolbox, test_features, test_dimensions, train_feat
     """
     func = toolbox.compile(expr=best_tree)
     # func(*features)
-    test_feat_vec = generate_feature_vector(pow(2, 8), func, test_features)
+    test_feat_vec = generate_feature_vector(pow(2, code_node_children), func, test_features)
     train_feat_vecs = generate_all_feature_vectors(best_tree, toolbox, train_features, train_targets, train_dimensions)
     # need to convert feat_vec into an actual class
     # possibly through a 1NN
+    # print(test_feat_vec)
+    # print("vs")
+    # print(train_feat_vecs)
+    # print("----")
     predicted = nearest_neighbour(test_feat_vec, train_feat_vecs, train_targets)
     return predicted
 
