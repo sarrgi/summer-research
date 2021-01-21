@@ -401,6 +401,8 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
 
 def singular_eval(best_tree, toolbox, test_features, test_dimensions, train_features, train_dimensions, train_targets):
     """
+    ... yeah this method sucks, TODO: actual AI library
+
     Evaluate a singular test instance against the entire trainign instance.
 
     TODO: normalize distance func?
@@ -408,13 +410,9 @@ def singular_eval(best_tree, toolbox, test_features, test_dimensions, train_feat
     func = toolbox.compile(expr=best_tree)
     # func(*features)
     test_feat_vec = generate_feature_vector(pow(2, code_node_children), func, test_features)
+
     train_feat_vecs = generate_all_feature_vectors(best_tree, toolbox, train_features, train_targets, train_dimensions)
     # need to convert feat_vec into an actual class
-    # possibly through a 1NN
-    # print(test_feat_vec)
-    # print("vs")
-    # print(train_feat_vecs)
-    # print("----")
     predicted = nearest_neighbour(test_feat_vec, train_feat_vecs, train_targets)
     return predicted
 

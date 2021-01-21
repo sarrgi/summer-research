@@ -48,7 +48,7 @@ def getDimensions(location):
     # error state
     return -1,-1
 
-def getAllDimensions(location):
+def get_all_dimensions(location):
     """
     Return the width and height of all the images in a location.
     """
@@ -183,7 +183,7 @@ if __name__ == "__main__":
         # get all images
         ims = loadAllImagesLocal(dir)
         # get all dimensions
-        dimensions = getAllDimensions(dir)
+        dimensions = get_all_dimensions(dir)
         # add image dimensions
         for i in range(len(ims)):
             ims[i].set_dimensions(dimensions[i])
