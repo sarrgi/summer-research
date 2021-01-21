@@ -8,7 +8,7 @@ import re
 import os
 from PIL import Image
 import test
-
+import csv
 
 class Obj:
     def __init__(self, i, n):
@@ -103,8 +103,10 @@ def split_images_with_dimensions(image_set, n):
 
 
 if __name__ == "__main__":
-    mygp.set_code_node_children(8)
 
+
+
+    ################ CsV TeST ##################
     # check and set seed
     if len(sys.argv) != 2:
         sys.exit("Incorrect parameter amount.")
@@ -113,17 +115,23 @@ if __name__ == "__main__":
     random.seed(seed_val)
     print("Running with seed", seed_val)
 
+    features = []
+    targets = []
+    with open("test_data/Fake_dataset.csv", newline='') as file:
+        reader = csv.reader(file, delimiter=',')
+        for row in reader:
+            # skip garbage
+            if len(row) == 0 or row[1] == 'F1':continue
+            # split row into class and features
+            feature = row[:-1]
+            target = row[-1]
+            features.append(feature)
+            targets.append(target)
+
     # define window size
     window = (5,5)
 
-    # get class directories
-    # "images/archive/tiny_crops_uneven/*/"
-    # "data/sorted_by_class_shell_0_grey/*/"
-    # "images/archive/grayscale_crops/*/"
-    # "/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_grey/*/"
-    # "/vol/grid-solar/sgeusers/sargisfinl/data/test/grayscale_crops/*/"
-    # "/vol/grid-solar/sgeusers/sargisfinl/data/bovw_0/*/"
-    # "/vol/grid-solar/sgeusers/sargisfinl/data/bovw_1/*/"
+ 
 
 
 
@@ -132,85 +140,133 @@ if __name__ == "__main__":
 
 
 
+    ######################################################################################################
+    ############################################ ACTUAL BELOW ############################################
+    ######################################################################################################
 
 
-
-
-
-
-
-
-
-
-
-
-    main_dir = "images/archive/tiny_crops_uneven_split/"
-    train_dir = main_dir + "train/*/"
-    test_dir = main_dir + "test/*/"
-
-    # load images
-    train_images = load_image_data(train_dir)
-    test_images = load_image_data(test_dir)
-
-    # create all targets
-    train_targets = create_targets(train_images)
-    test_targets = create_targets(test_images)
-
-    # split train targets for two images for gp
-    gp_train_targets, gp_test_targets = split_dataset(train_targets, 2)
-
-    # split train images for two images for gp
-    gp_train_features, gp_train_features_dims, gp_test_features, gp_test_features_dims = split_images_with_dimensions(train_images, 2)
-
-    # merge test and training data
-    gp_train_features, gp_train_targets = test.mergeInputData(gp_train_features, gp_train_targets)
-    gp_test_features, gp_test_targets = test.mergeInputData(gp_test_features, gp_test_targets)
-
-    # keep track of size
-    for i, t in enumerate(gp_train_features):
-        gp_train_features[i] = (gp_train_features[i], gp_train_features_dims[i])
-    for i, t in enumerate(gp_test_features):
-        gp_test_features[i] = (gp_test_features[i], gp_test_features_dims[i])
-
-    # get terminal set from training data
-    print("Getting Training Set.")
-    gp_train_terminal_set = []
-    for i in range(len(gp_train_features)):
-        sw = slide.slide_window(gp_train_features[i][0], window, gp_train_features[i][1])
-        for i in sw:
-            gp_train_terminal_set.append(i)
-
-    # remove duplicates from targets
-    gp_train_targets_copy = gp_train_targets
-    gp_train_targets = mygp.remove_duplicates(gp_train_targets)
-
-    # normalize input
-    gp_train_features = mygp.normalize_input(gp_train_terminal_set)
-
-    # Start recording time (at creation of gp tree)
-    start_time = time.time()
-
-    # create toolbox (GP structure)
-    print("Creating Toolbox.")
-    toolbox, pset = mygp.create_toolbox(gp_train_targets, gp_train_features, gp_train_features_dims)
-
-    best_tree = mygp.train(toolbox)
-
-    print("Evaluating Training Set.")
-    correct = 0
-    incorrect = 0
-    for i in range(len(gp_train_features_dims)):
-        curr_size = (gp_train_features_dims[i][0] - 4) * (gp_train_features_dims[i][1] - 4)
-
-        previous_sizes = 0
-        for j in range(i):
-            previous_sizes += (gp_train_features_dims[j][0] - 4) * (gp_train_features_dims[j][1] - 4)
-
-        current_features = gp_train_features[previous_sizes: (previous_sizes+curr_size)]
-        pred = mygp.singular_eval(best_tree, toolbox, current_features, gp_train_features_dims[i], gp_train_features, gp_train_features_dims, gp_train_targets)
-
-        if pred == gp_train_targets[i%len(gp_train_targets)]:
-            correct += 1
-        else:
-            incorrect += 1
-    print(correct, "/", (correct + incorrect), " acc: ", correct/(correct + incorrect), sep = "")
+    # mygp.set_code_node_children(8)
+    #
+    # # check and set seed
+    # if len(sys.argv) != 2:
+    #     sys.exit("Incorrect parameter amount.")
+    #
+    # seed_val = sys.argv[1]
+    # random.seed(seed_val)
+    # print("Running with seed", seed_val)
+    #
+    # # define window size
+    # window = (5,5)
+    #
+    # # get class directories
+    # # "images/archive/tiny_crops_uneven/*/"
+    # # "data/sorted_by_class_shell_0_grey/*/"
+    # # "images/archive/grayscale_crops/*/"
+    # # "/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_grey/*/"
+    # # "/vol/grid-solar/sgeusers/sargisfinl/data/test/grayscale_crops/*/"
+    # # "/vol/grid-solar/sgeusers/sargisfinl/data/bovw_0/*/"
+    # # "/vol/grid-solar/sgeusers/sargisfinl/data/bovw_1/*/"
+    #
+    # main_dir = "images/archive/tiny_crops_uneven_split/"
+    # train_dir = main_dir + "train/*/"
+    # test_dir = main_dir + "test/*/"
+    #
+    # # load images
+    # train_images = load_image_data(train_dir)
+    # test_images = load_image_data(test_dir)
+    #
+    # # create all targets
+    # train_targets = create_targets(train_images)
+    # test_targets = create_targets(test_images)
+    #
+    # # split train targets for two images for gp
+    # gp_train_targets, gp_test_targets = split_dataset(train_targets, 2)
+    #
+    # # split train images for two images for gp
+    # gp_train_features, gp_train_features_dims, gp_test_features, gp_test_features_dims = split_images_with_dimensions(train_images, 2)
+    #
+    # # merge test and training data
+    # gp_train_features, gp_train_targets = test.mergeInputData(gp_train_features, gp_train_targets)
+    # gp_test_features, gp_test_targets = test.mergeInputData(gp_test_features, gp_test_targets)
+    #
+    # # keep track of size
+    # for i, t in enumerate(gp_train_features):
+    #     gp_train_features[i] = (gp_train_features[i], gp_train_features_dims[i])
+    # for i, t in enumerate(gp_test_features):
+    #     gp_test_features[i] = (gp_test_features[i], gp_test_features_dims[i])
+    #
+    # # get terminal set from training data
+    # print("Getting Training Set.")
+    # gp_train_terminal_set = []
+    # for i in range(len(gp_train_features)):
+    #     sw = slide.slide_window(gp_train_features[i][0], window, gp_train_features[i][1])
+    #     for i in sw:
+    #         gp_train_terminal_set.append(i)
+    #
+    # # remove duplicates from targets
+    # gp_train_targets_copy = gp_train_targets
+    # gp_train_targets = mygp.remove_duplicates(gp_train_targets)
+    #
+    # # normalize input
+    # gp_train_features = mygp.normalize_input(gp_train_terminal_set)
+    #
+    # # Start recording time (at creation of gp tree)
+    # start_time = time.time()
+    #
+    # # create toolbox (GP structure)
+    # print("Creating Toolbox.")
+    # toolbox, pset = mygp.create_toolbox(gp_train_targets, gp_train_features, gp_train_features_dims)
+    #
+    # # train gp algorithms
+    # best_tree = mygp.train(toolbox)
+    #
+    # # evaluate training set
+    # print("Evaluating Training Set.")
+    # correct = 0
+    # incorrect = 0
+    # for i in range(len(gp_train_features_dims)):
+    #     curr_size = (gp_train_features_dims[i][0] - 4) * (gp_train_features_dims[i][1] - 4)
+    #
+    #     previous_sizes = 0
+    #     for j in range(i):
+    #         previous_sizes += (gp_train_features_dims[j][0] - 4) * (gp_train_features_dims[j][1] - 4)
+    #
+    #     current_features = gp_train_features[previous_sizes: (previous_sizes+curr_size)]
+    #     pred = mygp.singular_eval(best_tree, toolbox, current_features, gp_train_features_dims[i], gp_train_features, gp_train_features_dims, gp_train_targets)
+    #
+    #     if pred == gp_train_targets[i%len(gp_train_targets)]:
+    #         correct += 1
+    #     else:
+    #         incorrect += 1
+    # print(correct, "/", (correct + incorrect), " acc: ", correct/(correct + incorrect), sep = "")
+    #
+    # # evaluate test set
+    # correct = 0
+    # incorrect = 0
+    # print("Evaluating Test Set.")
+    # for i in range(len(gp_test_features)):
+    #     sw = slide.slide_window(gp_test_features[i][0], window, gp_test_features[i][1])
+    #     test_terminals = []
+    #     for s in sw:
+    #         test_terminals.append(s)
+    #     normalized = mygp.normalize_input(test_terminals)
+    #
+    #     pred = mygp.singular_eval(best_tree, toolbox, normalized, gp_test_feature_dims[i], gp_train_features, gp_train_feature_dims,
+    #     gp_train_targets)
+    #
+    #     # print(pred, "vs", test_targets[i])
+    #     if pred == test_targets[i]:
+    #         correct += 1
+    #     else:
+    #         incorrect += 1
+    # print(correct, "/", len(test_features), " acc: ", correct/(correct + incorrect), sep = "")
+    #
+    #
+    # output_file = open("output.txt", "w")
+    # output_file.write("".join(("Code Node Children: ", str(mygp.get_code_node_children()), "\n")))
+    # output_file.write("".join(("Seed Value:", str(seed_val), "\n")))
+    # output_file.write("Best tree: \n")
+    # output_file.write(str(best_tree))
+    # output_file.write("".join(("\n-----------------------\n", str(correct), "/", str(len(test_features)), " acc: ", str(correct/incorrect))))
+    #
+    # output_file.close()
