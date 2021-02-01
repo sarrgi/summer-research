@@ -345,7 +345,7 @@ def train(toolbox):
     Train the toolbox and create the best tree.
     """
     print("Training.")
-    pop = toolbox.population(n=100) #TODO: 500
+    pop = toolbox.population(n=300)
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", numpy.mean)
@@ -361,7 +361,7 @@ def evaluate(toolbox, train_features, train_targets, test_features, test_targets
     """
         TODO - proper evaluation
     """
-    pop = toolbox.population(n=100) #TODO: 500
+    pop = toolbox.population(n=300) #TODO: 500
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", numpy.mean)

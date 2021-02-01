@@ -1,5 +1,5 @@
 import mygp
-import slide
+import slide_col
 import time
 import random
 import sys
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     # "/vol/grid-solar/sgeusers/sargisfinl/data/bovw_0/*/"
     # "/vol/grid-solar/sgeusers/sargisfinl/data/bovw_1/*/"
 
-    main_dir = "/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_grey_reduced/"
+    main_dir = "/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_reduced/"
     train_dir = main_dir + "train/*/"
     test_dir = main_dir + "test/*/"
 
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     print("Getting Training Set.")
     gp_train_terminal_set = []
     for i in range(len(gp_train_features)):
-        sw = slide.slide_window(gp_train_features[i][0], window, gp_train_features[i][1])
+        sw = slide_col.slide_window(gp_train_features[i][0], window, gp_train_features[i][1])
         for i in sw:
             gp_train_terminal_set.append(i)
 
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     incorrect = 0
     print("Evaluating Test Set.")
     for i in range(len(gp_test_features)):
-        sw = slide.slide_window(gp_test_features[i][0], window, gp_test_features[i][1])
+        sw = slide_col.slide_window(gp_test_features[i][0], window, gp_test_features[i][1])
         test_terminals = []
         for s in sw:
             test_terminals.append(s)
