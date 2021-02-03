@@ -26,6 +26,16 @@ def set_code_node_children(x):
     global code_node_children
     code_node_children = x
 
+
+def merge_input_data(data_list, target_list):
+    """
+    Merge two lists of x different classes into a single data list and single target list.
+    """
+    data_arr = itertools.chain.from_iterable(data_list)
+    target_arr = itertools.chain.from_iterable(target_list)
+    return list(data_arr), list(target_arr)
+
+
 def protected_div(left, right):
     """
     Performs regular division, with the exception of safeguarding potential division by 0 issues.
@@ -345,14 +355,14 @@ def train(toolbox):
     Train the toolbox and create the best tree.
     """
     print("Training.")
-    pop = toolbox.population(n=300)
+    pop = toolbox.population(n=100)
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", numpy.mean)
     stats.register("std", numpy.std)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
-    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 30, stats, halloffame=hof, verbose=True) #TODO: 30 gens
+    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 10, stats, halloffame=hof, verbose=True) #TODO: 30 gens
 
     return hof[0]
 
