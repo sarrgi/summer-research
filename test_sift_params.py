@@ -4,11 +4,12 @@ from matplotlib import pyplot as plt
 import numpy as np
 import plotly.express as px
 
-def sift_draw(images, layers, sig):
+def sift_draw(images, layers, sig, edge, contrast):
     kp_sum = 0
     total = 0
 
-    sift = cv2.SIFT.create(nOctaveLayers=layers, sigma=sig)
+    #
+    sift = cv2.SIFT.create(nOctaveLayers=3, sigma=2.5, contrastThreshold=0.065, edgeThreshold=3)
     for key,value in images.items():
         for img in value:
             # detect keypoints
@@ -20,6 +21,11 @@ def sift_draw(images, layers, sig):
             # cv2.waitKey(1000)
             # cv2.destroyAllWindows()
 
+            # save image
+            # file_name = "".join(("images/sift/edge_", str(edge/10), "/", key, "_", str(total), ".jpg"))
+            # print(file_name)
+            # cv2.imwrite(file_name, d)
+
             # track lengths
             kp_sum += len(kp)
             total += 1
@@ -29,39 +35,28 @@ def sift_draw(images, layers, sig):
 
 if __name__ == "__main__":
 
-    train = bovw_diff.load_images_from_folder('/vol/grid-solar/sgeusers/sargisfinl/data/bovw_0_color_run/train')  # take all images category by category
-    test = bovw_diff.load_images_from_folder("/vol/grid-solar/sgeusers/sargisfinl/data/bovw_0_color_run/test") # take test images
+    train = bovw_diff.load_images_from_folder('/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_reduced/train')  # take all images category by category
+    test = bovw_diff.load_images_from_folder("/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_reduced/test") # take test images
 
     output_file = open("out.txt", "w")
 
     kp_arr = []
     ax = []
 
-    for i in range(3, 4): #50
-        for j in range(1, 1000):
-            s = sift_draw(test, i, j/100)
-            # print("layers:", i, ". sigma:", j/100, "- KP:", x)
-
-            kp_arr.append(s)
-            ax.append(j)
-
-            # output_file.write("".join(("layers:", str(i), ". sigma:", str(j/100), "- KP:", str(x))))
-
-    output_file.close()
-
-
-    x = np.asarray(kp_arr, dtype=np.float32)
-    y = np.asarray(ax, dtype=np.float32)
-    # print(x,y)
+    # for i in range(20, 51):
+    s = sift_draw(test, 1, 1, 1, 0.065)    # print("layers:", i, ". sigma:", j/100, "- KP:", x)
+    print(s)
     #
-    # print(type(x), y)
+    # # kp_arr.append(s)
+    # # ax.append(j)
     #
-    # # plt.plot(kp_arr, ax)
-    fig = px.scatter(x=x, y=y)
-    fig.show()
-    # plt.savefig('file.png')
+    # # output_file.write("".join(("layers:", str(i), ". sigma:", str(j/100), "- KP:", str(x))))
+    #
+    # output_file.close()
 
-    # plt.show()
+
+    # x = np.asarray(kp_arr, dtype=np.float32)
+    # y = np.asarray(ax, dtype=np.float32)
     #
-    # def
-    # sifts = bovw_diff.sift_features(train)
+    # fig = px.scatter(x=x, y=y)
+    # fig.show()

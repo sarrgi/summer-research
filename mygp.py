@@ -146,8 +146,8 @@ def distance_vectors(u, v):
     sum = 0
 
     # normalize feature vector
-    # u = normalize_vector(u)
-    # v = normalize_vector(v)
+    u = normalize_vector(u)
+    v = normalize_vector(v)
 
     for i in range(len(u)):
         if u[i] + v[i] != 0: #avoid divide by 0 errors
@@ -355,14 +355,14 @@ def train(toolbox):
     Train the toolbox and create the best tree.
     """
     print("Training.")
-    pop = toolbox.population(n=100)
+    pop = toolbox.population(n=300)
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", numpy.mean)
     stats.register("std", numpy.std)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
-    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 10, stats, halloffame=hof, verbose=True) #TODO: 30 gens
+    pop, log = algorithms.eaSimple(pop, toolbox, 0.8, 0.2, 50, stats, halloffame=hof, verbose=True) #TODO: 30 gens
 
     return hof[0]
 

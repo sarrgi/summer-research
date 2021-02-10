@@ -126,7 +126,7 @@ if __name__ == "__main__":
     # "/vol/grid-solar/sgeusers/sargisfinl/data/bovw_0/*/"
     # "/vol/grid-solar/sgeusers/sargisfinl/data/bovw_1/*/"
 
-    main_dir = "/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_reduced/"
+    main_dir = "images/archive/tiny_crops_uneven_split/"
     train_dir = main_dir + "train/*/"
     test_dir = main_dir + "test/*/"
 

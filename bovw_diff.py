@@ -1,12 +1,19 @@
 import numpy as np
 import cv2
 import os
+import sys
+
+from PIL import Image
+
+from matplotlib import pyplot as plt
+
 from scipy import ndimage
 from scipy.spatial import distance
 from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import confusion_matrix
 
 # takes all images and convert them to grayscale.
 # return a dictionary that holds all images category by category.
@@ -24,10 +31,10 @@ def load_images_from_folder(folder):
     return images
 
 
-def sift_features(images):
+def sift_features(images, layers, sig, contrast, edge):
     sift_vectors = {}
     descriptor_list = []
-    sift = cv2.SIFT.create()
+    sift = cv2.SIFT.create(nOctaveLayers=layers, sigma=sig, contrastThreshold=contrast, edgeThreshold=edge)
     for key,value in images.items():
         features = []
         for img in value:
@@ -41,7 +48,7 @@ def sift_features(images):
 
 
 def kmeans(k, descriptor_list):
-    kmeans = KMeans(n_clusters = k, n_init=10)
+    kmeans = KMeans(n_clusters = k, n_init=100)
     kmeans.fit(descriptor_list)
     visual_words = kmeans.cluster_centers_
     return visual_words
@@ -100,14 +107,12 @@ def knn(images, tests):
 def eval(images, tests, model):
     train_targets, train_images = convert_to_clf_form(images)
     test_targets, test_images = convert_to_clf_form(tests)
-    #
+
     clf = model
-    # print(type(images.items()), images.items())
-    # print("--")
-    # print(type(images.keys()), images.keys())
     clf.fit(train_images, train_targets)
     predictions = clf.predict(test_images)
-    return compare_results(predictions, test_targets)
+
+    return compare_results(predictions, test_targets), predictions, test_targets
 
 
 def convert_to_clf_form(dictionary):
@@ -125,18 +130,18 @@ def convert_to_clf_form(dictionary):
 def compare_results(predictions, actual):
     class_results = {}
     correct = 0
-    for i in range(len(predictions)):
-        # check if correct
+
+    for i in range(len(actual)):
         to_add = 0
+
         if predictions[i] == actual[i]:
             correct += 1
             to_add = 1
 
-        # add to dict
-        if predictions[i] in class_results:
-            class_results[predictions[i]] = [class_results[predictions[i]][0] + to_add, class_results[predictions[i]][1] + 1]
+        if actual[i] not in class_results:
+            class_results[actual[i]] = [to_add, 1]
         else:
-            class_results[predictions[i]] = [to_add, 1]
+            class_results[actual[i]] = [class_results[actual[i]][0] + to_add, class_results[actual[i]][1] + 1]
 
     return [len(actual), correct, class_results]
 
@@ -166,24 +171,93 @@ def find_index(image, center):
     return ind
 
 
+# def plotConfusionMatrix(y_true, y_pred, classes,
+#                           normalize=False,
+#                           title=None,
+#                           cmap=plt.cm.Blues):
+#     if not title:
+#         if normalize:
+#             title = 'Normalized confusion matrix'
+#         else:
+#             title = 'Confusion matrix, without normalization'
+#
+#     cm = confusion_matrix(y_true, y_pred)
+#     if normalize:
+#         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+#         print("Normalized confusion matrix")
+#     else:
+#         print('Confusion matrix, without normalization')
+#
+#     print(cm)
+#
+#     fig, ax = plt.subplots()
+#     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+#     ax.figure.colorbar(im, ax=ax)
+#     ax.set(xticks=np.arange(cm.shape[1]),
+#            yticks=np.arange(cm.shape[0]),
+#            xticklabels=classes, yticklabels=classes,
+#            title=title,
+#            ylabel='True label',
+#            xlabel='Predicted label')
+#
+#     plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+#              rotation_mode="anchor")
+#
+#     fmt = '.2f' if normalize else 'd'
+#     thresh = cm.max() / 2.
+#     for i in range(cm.shape[0]):
+#         for j in range(cm.shape[1]):
+#             ax.text(j, i, format(cm[i, j], fmt),
+#                     ha="center", va="center",
+#                     color="white" if cm[i, j] > thresh else "black")
+#     fig.tight_layout()
+#     return ax
+
 
 if __name__ == "__main__":
 
-    images = load_images_from_folder('/vol/grid-solar/sgeusers/sargisfinl/data/bovw_0_color_run/train')  # take all images category by category
-    test = load_images_from_folder("/vol/grid-solar/sgeusers/sargisfinl/data/bovw_0_color_run/test") # take test images
+    if len(sys.argv) != 2:
+        sys.exit("Incorrect parameter amount.")
+    k_val = int(sys.argv[1])
 
-    print('sift')
-    sifts = sift_features(images)
+    print("Running with k: ", k_val)
+
+    # /vol/grid-solar/sgeusers/sargisfinl/data/bovw_0_color_run/train
+    # data/gcp/bovw_0_color_run/train
+    dir = '/vol/grid-solar/sgeusers/sargisfinl/data/bovw_0_color_run/'
+    images = load_images_from_folder(dir + 'train')  # take all images category by category
+    test = load_images_from_folder(dir + 'test') # take test images
+
+    print("Dataset:", dir)
+
+    # classes = ["color_1", "color_2", "color_3", "color_4", "color_5"]
+
+    print('Sift with params: Layers - %d, Sigma - %.1f, Contrast - %.3f, Edge - %d,' % (3, 2.5, 0.065, 3))
+    sifts = sift_features(images, 3, 1.3, 0.065, 3)
     # Takes the descriptor list which is unordered one
     descriptor_list = sifts[0]
     # Takes the sift features that is seperated class by class for train data
     all_bovw_feature = sifts[1]
     # Takes the sift features that is seperated class by class for test data
-    test_bovw_feature = sift_features(test)[1]
+    test_bovw_feature = sift_features(test, 3, 1.3, 0.065, 3)[1]
 
     print('kmeans')
     # Takes the central points which is visual words
-    visual_words = kmeans(50, descriptor_list)
+    visual_words = kmeans(k_val, descriptor_list)
+
+
+
+    #
+    vvs = visual_words[0].reshape(8, 16)
+
+    for v in vvs:
+        array = np.array(v, dtype=np.uint8)
+        img = Image.fromarray(array)
+        img.show()
+
+    exit(1)
+    #
+
 
     print('hist')
     # Creates histograms for train data
@@ -193,23 +267,39 @@ if __name__ == "__main__":
 
     print("-----------------------------------------------")
     print('Random forest')
-    results_bowl = eval(bovw_train, bovw_test, RandomForestClassifier())
+    results_bowl, y_pred, y_true = eval(bovw_train, bovw_test, RandomForestClassifier())
     accuracy(results_bowl)
+    cm = confusion_matrix(y_true, y_pred)
+    print(cm)
     print("-----")
 
     print('Decision Tree')
-    results_bowl = eval(bovw_train, bovw_test, DecisionTreeClassifier())
+    results_bowl, y_pred, y_true = eval(bovw_train, bovw_test, DecisionTreeClassifier())
     accuracy(results_bowl)
+    cm = confusion_matrix(y_true, y_pred)
+    print(cm)
     print("-----")
 
     print('Knn (3)')
     k = KNeighborsClassifier()
     k.set_params(n_neighbors=3)
-    results_bowl = eval(bovw_train, bovw_test, k)
+    results_bowl, y_pred, y_true = eval(bovw_train, bovw_test, k)
     accuracy(results_bowl)
+    cm = confusion_matrix(y_true, y_pred)
+    print(cm)
     print("-----")
 
-    print("Knn (1)")
+    print('Knn (1) sk')
+    k = KNeighborsClassifier()
+    k.set_params(n_neighbors=1)
+    results_bowl, y_pred, y_true = eval(bovw_train, bovw_test, k)
+    accuracy(results_bowl)
+    cm = confusion_matrix(y_true, y_pred)
+    print(cm)
+    print("-----")
+
+
+    print("Knn (1) manual")
     results_bowl = knn(bovw_train, bovw_test)
     accuracy(results_bowl)
     print("-----")

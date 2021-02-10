@@ -3,6 +3,7 @@ import slide
 import test
 import csv
 
+import itertools
 import time
 import random
 import sys
@@ -78,7 +79,7 @@ def create_targets(image_set):
     for c in image_set:
         for i, im in enumerate(c):
         # get target name
-            class_type = re.search("class_[0-9]+", im.name).group(0)
+            class_type = re.search("._[0-9]+", im.name).group(0)
             # create target list
             if i == 0:
                 targets.append([class_type] * len(c))
@@ -106,49 +107,7 @@ def split_images_with_dimensions(image_set, n):
 
     return train_features, train_feat_dims, test_features, test_feat_dims
 
-
-if __name__ == "__main__":
-
-    """
-    - should be split 50/50 train:test
-        - do this in folder form
-    - train set is then split 2:n-2 to train gp
-        - gp_train : gp_test
-    - evaluation
-        - use learned gp to extract features from images
-        - use train set to fit model
-        - use test set to classify (predict)
-        - get some confusion matrices and that going to explain results
-    """
-
-    mygp.set_code_node_children(8)
-
-    # check and set seed
-    if len(sys.argv) != 2:
-        sys.exit("Incorrect parameter amount.")
-
-    seed_val = sys.argv[1]
-    random.seed(seed_val)
-    print("Running with seed", seed_val)
-
-    # define window size
-    window = (5,5)
-
-    # get class directories
-    # "images/archive/tiny_crops_uneven/*/"
-    # "data/sorted_by_class_shell_0_grey/*/"
-    # "images/archive/grayscale_crops/*/"
-    # "/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_grey/*/"
-    # "/vol/grid-solar/sgeusers/sargisfinl/data/test/grayscale_crops/*/"
-    # "/vol/grid-solar/sgeusers/sargisfinl/data/bovw_0/*/"
-    # "/vol/grid-solar/sgeusers/sargisfinl/data/bovw_1/*/"
-
-    main_dir = "images/archive/tiny_crops_uneven_split/"
-    train_dir = main_dir + "train/*/"
-    test_dir = main_dir + "test/*/"
-
-    print("Dataset:", main_dir)
-
+def train_gp(train_dir, window):
     # load gp training images
     train_images = load_image_data(train_dir)
     train_targets = create_targets(train_images)
@@ -184,12 +143,151 @@ if __name__ == "__main__":
 
     # create toolbox (GP structure)
     print("Creating Toolbox.")
+    # print(gp_train_targets)
+    # print("-")
+    # print(gp_train_features)
+    # print("-")
+    # print(gp_train_features_dims)
+    # print("-")
+    # print(len(gp_train_targets), len(gp_train_features), len(gp_train_features_dims))
+    # print("Created.")
     toolbox, pset = mygp.create_toolbox(gp_train_targets, gp_train_features, gp_train_features_dims)
 
     # train gp algorithms
     best_tree = mygp.train(toolbox)
 
-    # get train features for model
+    return best_tree, toolbox
+
+if __name__ == "__main__":
+
+    """
+    - should be split 50/50 train:test
+        - do this in folder form
+    - train set is then split 2:n-2 to train gp
+        - gp_train : gp_test
+    - evaluation
+        - use learned gp to extract features from images
+        - use train set to fit model
+        - use test set to classify (predict)
+        - get some confusion matrices and that going to explain results
+    """
+    # set code node size
+    mygp.set_code_node_children(8)
+
+    # check and set seed
+    if len(sys.argv) != 2:
+        sys.exit("Incorrect parameter amount.")
+    seed_val = sys.argv[1]
+    random.seed(seed_val)
+    print("Running with seed", seed_val)
+
+    # define window size
+    window = (5, 5)
+
+    # define dataset
+    main_dir = "/vol/grid-solar/sgeusers/sargisfinl/data/sorted_by_class_shell_0_grey_reduced/"
+    train_dir = main_dir + "train/*/"
+    test_dir = main_dir + "test/*/"
+    print("Dataset:", main_dir)
+
+    # train gp
+    best_tree, toolbox = train_gp(train_dir, window)
+
+    # create training set for model based on tree
+    train_images = load_image_data(train_dir)
+    train_targets = create_targets(train_images)
+
+    # print(train_images[0][0])
+    # TODO: normalize
+
+    func = toolbox.compile(expr=best_tree)
+    # convert to histogram
+    training_histograms = []
+    for c in range(len(train_images)):
+        for i in range(len(train_images[c])):
+            sw = slide.slide_window(train_images[c][i].image, window, train_images[c][i].dimensions)
+            feats = mygp.normalize_input(sw)
+            individual = mygp.generate_feature_vector(pow(2, mygp.get_code_node_children()), func, feats)
+            training_histograms.append(individual)
+
+
+    # flatten targets
+    train_targets = list(itertools.chain.from_iterable(train_targets))
+
+    # fit model
+    clf = RandomForestClassifier()
+    clf.fit(training_histograms, train_targets)
+
+
+    # test_images = load_image_data(test_dir)
+    # test_targets = create_targets(test_images)
+    # test_targets = list(itertools.chain.from_iterable(test_targets))
+
+    # print(training_histograms[0])
+    # exit(1)
+    # classify test images
+    print("testing")
+    results = {}
+
+    # load test images
+    for dir in glob.glob(test_dir):
+        # get jpg files
+        dir = dir + "*.jpg"
+
+        # classify images individually
+        for filename in glob.glob(dir):
+            with open(os.path.join(os.getcwd(), filename), "r") as f:
+                # load image obj
+                img = Image.open(filename)
+                pix = img.load()
+                image = Obj(pix, filename)
+
+                # get target
+                target = re.search("[a-zA-Z_0-1]+class_[0-9]+", image.name).group(0)
+
+                sw = slide.slide_window(image.image, window, img.size)
+                feats = mygp.normalize_input(sw)
+                individual = mygp.generate_feature_vector(pow(2, mygp.get_code_node_children()), func, feats)
+                pred = clf.predict([individual])
+
+
+                print(pred, test_targets[c])
+
+                # check if correct
+                is_correct = (pred[0] == test_targets[c])
+                to_add = 0
+                if is_correct: to_add = 1
+
+                # add to results dict
+                if test_targets[c] not in results:
+                    results[test_targets[c]] = [to_add, 1]
+                else:
+                    results[test_targets[c]] = [results[test_targets[c]][0] + to_add, results[test_targets[c]][1] + 1]
+
+    print(results)
+
+
+    # for c in range(len(test_images)):
+    #     for i in range(len(test_images[c])):
+    #         sw = slide.slide_window(test_images[c][i].image, window, test_images[c][i].dimensions)
+    #         feats = mygp.normalize_input(sw)
+    #         individual = mygp.generate_feature_vector(pow(2, mygp.get_code_node_children()), func, feats)
+    #         pred = clf.predict([individual])
+    #         print(pred, test_targets[c])
+    #
+    #         # check if correct
+    #         is_correct = (pred[0] == test_targets[c])
+    #         to_add = 0
+    #         if is_correct: to_add = 1
+    #
+    #         # add to results dict
+    #         if test_targets[c] not in results:
+    #             results[test_targets[c]] = [to_add, 1]
+    #         else:
+    #             results[test_targets[c]] = [results[test_targets[c]][0] + to_add, results[test_targets[c]][1] + 1]
+    #
+    # print(results)
+
 
 
 
