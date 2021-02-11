@@ -110,7 +110,10 @@ def knn(images, tests):
     return [num_test, correct_predict, class_based]
 
 
-def eval(images, tests, model):
+def info_gain(images, tests, model):
+    """
+    Return features (worst to best)
+    """
     train_targets, train_images = convert_to_clf_form(images)
     test_targets, test_images = convert_to_clf_form(tests)
 
@@ -121,14 +124,41 @@ def eval(images, tests, model):
     importance = model.feature_importances_
 
     for i, v in enumerate(importance):
-        print('Feature: %0d, Score: %.5f' % (i,v))
         unordered_feats.append((i,v))
 
-    sorted_by_feats = reversed(sorted(unordered_feats, key=lambda tup: tup[1]))
-    print("--")
-    print(sorted_by_feats)
+    sorted_by_feats = sorted(unordered_feats, key=lambda tup: tup[1])
+    sorted_by_feats.reverse()
+
+    return sorted_by_feats
 
 
+def remove_feats(features, feature_rankings, cut_off):
+    features_copy = features
+
+    arbitrary_point = int(cut_off*len(feature_rankings))
+
+    # find indexes to keep
+    to_keep_ind = ()
+    for i, feat in enumerate(feature_rankings):
+        if i < arbitrary_point: to_keep_ind += (feat[0],)
+
+    # remove unwanted indexes
+    for c in features_copy:
+        for ind, feat in enumerate(features_copy[c]):
+            removed = [v for i,v in enumerate(feat) if i in frozenset(to_keep_ind)]
+            removed_np = np.asarray(removed, dtype=float)
+            features_copy[c][ind] = removed_np
+
+    return features_copy
+
+
+
+def eval(images, tests, model):
+    train_targets, train_images = convert_to_clf_form(images)
+    test_targets, test_images = convert_to_clf_form(tests)
+
+    clf = model
+    clf.fit(train_images, train_targets)
     predictions = clf.predict(test_images)
 
     return compare_results(predictions, test_targets), predictions, test_targets
@@ -168,10 +198,10 @@ def compare_results(predictions, actual):
 def accuracy(results):
     avg_accuracy = (results[1] / results[0]) * 100
     print("Average accuracy: %" + str(avg_accuracy))
-    print("\nClass based accuracies: \n")
-    for key,value in results[2].items():
-        acc = (value[0] / value[1]) * 100
-        print(key + " : %" + str(acc))
+    # print("\nClass based accuracies: \n")
+    # for key,value in results[2].items():
+    #     acc = (value[0] / value[1]) * 100
+    #     print(key + " : %" + str(acc))
 
 
 def find_index(image, center):
@@ -190,27 +220,15 @@ def find_index(image, center):
     return ind
 
 
-def make_info_gain(bovw_features):
-    targets = []
-
-    max = -1
-
-    for c in bovw_features:
-        for feat in bovw_features[c]:
-            targets.append(c)
-            if len(feat) > max: max = len(feat)
-
-    print("max:", max)
-
-    return -1
-
 if __name__ == "__main__":
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         sys.exit("Incorrect parameter amount.")
     k_val = int(sys.argv[1])
+    info_gain_thresh = float(sys.argv[2])
 
-    print("Running with k: ", k_val)
+    print("Running with k:", k_val)
+    print("Running with info thresh:", info_gain_thresh)
 
     # /vol/grid-solar/sgeusers/sargisfinl/data/bovw_0_color_run/train
     # data/gcp/bovw_0_color_run/train
@@ -245,16 +263,27 @@ if __name__ == "__main__":
     # Creates histograms for test data
     bovw_test = image_class(test_bovw_feature, visual_words)
 
-    # print(bovw_train['color_1'][])
-
+    # info gain experiments
+    ranked_features = info_gain(bovw_train, bovw_test, RandomForestClassifier())
+    bovw_filtered_train = remove_feats(bovw_train, ranked_features, info_gain_thresh)
+    bovw_filtered_test = remove_feats(bovw_test, ranked_features, info_gain_thresh)
 
     print("-----------------------------------------------")
-    print('Random forest')
+    print('Random forest (Info Gain)')
+    results_bowl, y_pred, y_true = eval(bovw_filtered_train, bovw_filtered_test, RandomForestClassifier())
+    accuracy(results_bowl)
+    cm = confusion_matrix(y_true, y_pred)
+    # print(cm)
+
+    print("-----")
+    print('Random forest (Default)')
     results_bowl, y_pred, y_true = eval(bovw_train, bovw_test, RandomForestClassifier())
     accuracy(results_bowl)
     cm = confusion_matrix(y_true, y_pred)
-    print(cm)
+    # print(cm)
     print("-----")
+
+
     exit(1)
 
     print('Decision Tree')
