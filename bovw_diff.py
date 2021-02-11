@@ -15,9 +15,15 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import confusion_matrix
 
+from info_gain import info_gain
+
+
 # takes all images and convert them to grayscale.
 # return a dictionary that holds all images category by category.
 def load_images_from_folder(folder):
+    """
+    images[class][image_no][image_y][image_x]
+    """
     images = {}
     for filename in os.listdir(folder):
         category = []
@@ -28,6 +34,7 @@ def load_images_from_folder(folder):
             if img is not None:
                 category.append(img)
         images[filename] = category
+
     return images
 
 
@@ -48,7 +55,7 @@ def sift_features(images, layers, sig, contrast, edge):
 
 
 def kmeans(k, descriptor_list):
-    kmeans = KMeans(n_clusters = k, n_init=100)
+    kmeans = KMeans(n_clusters = k, n_init=10)
     kmeans.fit(descriptor_list)
     visual_words = kmeans.cluster_centers_
     return visual_words
@@ -66,7 +73,6 @@ def image_class(all_bovw, centers):
             category.append(histogram)
         dict_feature[key] = category
     return dict_feature
-
 
 
 def knn(images, tests):
@@ -110,6 +116,19 @@ def eval(images, tests, model):
 
     clf = model
     clf.fit(train_images, train_targets)
+
+    unordered_feats = []
+    importance = model.feature_importances_
+
+    for i, v in enumerate(importance):
+        print('Feature: %0d, Score: %.5f' % (i,v))
+        unordered_feats.append((i,v))
+
+    sorted_by_feats = reversed(sorted(unordered_feats, key=lambda tup: tup[1]))
+    print("--")
+    print(sorted_by_feats)
+
+
     predictions = clf.predict(test_images)
 
     return compare_results(predictions, test_targets), predictions, test_targets
@@ -171,48 +190,19 @@ def find_index(image, center):
     return ind
 
 
-# def plotConfusionMatrix(y_true, y_pred, classes,
-#                           normalize=False,
-#                           title=None,
-#                           cmap=plt.cm.Blues):
-#     if not title:
-#         if normalize:
-#             title = 'Normalized confusion matrix'
-#         else:
-#             title = 'Confusion matrix, without normalization'
-#
-#     cm = confusion_matrix(y_true, y_pred)
-#     if normalize:
-#         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-#         print("Normalized confusion matrix")
-#     else:
-#         print('Confusion matrix, without normalization')
-#
-#     print(cm)
-#
-#     fig, ax = plt.subplots()
-#     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
-#     ax.figure.colorbar(im, ax=ax)
-#     ax.set(xticks=np.arange(cm.shape[1]),
-#            yticks=np.arange(cm.shape[0]),
-#            xticklabels=classes, yticklabels=classes,
-#            title=title,
-#            ylabel='True label',
-#            xlabel='Predicted label')
-#
-#     plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
-#              rotation_mode="anchor")
-#
-#     fmt = '.2f' if normalize else 'd'
-#     thresh = cm.max() / 2.
-#     for i in range(cm.shape[0]):
-#         for j in range(cm.shape[1]):
-#             ax.text(j, i, format(cm[i, j], fmt),
-#                     ha="center", va="center",
-#                     color="white" if cm[i, j] > thresh else "black")
-#     fig.tight_layout()
-#     return ax
+def make_info_gain(bovw_features):
+    targets = []
 
+    max = -1
+
+    for c in bovw_features:
+        for feat in bovw_features[c]:
+            targets.append(c)
+            if len(feat) > max: max = len(feat)
+
+    print("max:", max)
+
+    return -1
 
 if __name__ == "__main__":
 
@@ -225,45 +215,38 @@ if __name__ == "__main__":
     # /vol/grid-solar/sgeusers/sargisfinl/data/bovw_0_color_run/train
     # data/gcp/bovw_0_color_run/train
     dir = '/vol/grid-solar/sgeusers/sargisfinl/data/bovw_0_color_run/'
-    images = load_images_from_folder(dir + 'train')  # take all images category by category
+    train = load_images_from_folder(dir + 'train')  # take all images category by category
     test = load_images_from_folder(dir + 'test') # take test images
 
     print("Dataset:", dir)
 
     # classes = ["color_1", "color_2", "color_3", "color_4", "color_5"]
 
-    print('Sift with params: Layers - %d, Sigma - %.1f, Contrast - %.3f, Edge - %d,' % (3, 2.5, 0.065, 3))
-    sifts = sift_features(images, 3, 1.3, 0.065, 3)
+    layers = 3
+    sig = 2.5
+    contrast =  0.065
+    edge = 3
+    print('Sift with params: Layers - %d, Sigma - %.1f, Contrast - %.3f, Edge - %d,' % (layers, sig, contrast, edge))
+    sifts = sift_features(train, layers, sig, contrast, edge)
     # Takes the descriptor list which is unordered one
-    descriptor_list = sifts[0]
+    descriptor_list = sifts[0] # 53418 long array of 128 long features
     # Takes the sift features that is seperated class by class for train data
-    all_bovw_feature = sifts[1]
+    train_bovw_feature = sifts[1]
     # Takes the sift features that is seperated class by class for test data
-    test_bovw_feature = sift_features(test, 3, 1.3, 0.065, 3)[1]
+    test_bovw_feature = sift_features(test, layers, sig, contrast, edge)[1]
 
     print('kmeans')
     # Takes the central points which is visual words
     visual_words = kmeans(k_val, descriptor_list)
 
-
-
-    #
-    vvs = visual_words[0].reshape(8, 16)
-
-    for v in vvs:
-        array = np.array(v, dtype=np.uint8)
-        img = Image.fromarray(array)
-        img.show()
-
-    exit(1)
-    #
-
-
     print('hist')
     # Creates histograms for train data
-    bovw_train = image_class(all_bovw_feature, visual_words)
+    bovw_train = image_class(train_bovw_feature, visual_words)
     # Creates histograms for test data
     bovw_test = image_class(test_bovw_feature, visual_words)
+
+    # print(bovw_train['color_1'][])
+
 
     print("-----------------------------------------------")
     print('Random forest')
@@ -272,6 +255,7 @@ if __name__ == "__main__":
     cm = confusion_matrix(y_true, y_pred)
     print(cm)
     print("-----")
+    exit(1)
 
     print('Decision Tree')
     results_bowl, y_pred, y_true = eval(bovw_train, bovw_test, DecisionTreeClassifier())

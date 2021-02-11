@@ -4,12 +4,12 @@ from matplotlib import pyplot as plt
 import numpy as np
 import plotly.express as px
 
-def sift_draw(images, layers, sig, edge, contrast):
+def sift_draw(images, layers, sig, contrast, edge):
     kp_sum = 0
     total = 0
 
     #
-    sift = cv2.SIFT.create(nOctaveLayers=3, sigma=2.5, contrastThreshold=0.065, edgeThreshold=3)
+    sift = cv2.SIFT.create(nOctaveLayers=layers, sigma=sig, edgeThreshold=edge, contrastThreshold=contrast)
     for key,value in images.items():
         for img in value:
             # detect keypoints
@@ -17,9 +17,9 @@ def sift_draw(images, layers, sig, edge, contrast):
             d = cv2.drawKeypoints(img, kp, img)
 
             # display image for 1 second
-            # cv2.imshow("".join(("Keypint count:", str(len(kp)))), d)
-            # cv2.waitKey(1000)
-            # cv2.destroyAllWindows()
+            cv2.imshow("".join(("Keypint count:", str(len(kp)))), d)
+            cv2.waitKey(1000)
+            cv2.destroyAllWindows()
 
             # save image
             # file_name = "".join(("images/sift/edge_", str(edge/10), "/", key, "_", str(total), ".jpg"))
@@ -44,7 +44,11 @@ if __name__ == "__main__":
     ax = []
 
     # for i in range(20, 51):
-    s = sift_draw(test, 1, 1, 1, 0.065)    # print("layers:", i, ". sigma:", j/100, "- KP:", x)
+    layers = 3
+    sig = 2.5
+    contrast =  0.065
+    edge = 1.8
+    s = sift_draw(test, layers, sig, contrast, edge)    # print("layers:", i, ". sigma:", j/100, "- KP:", x)
     print(s)
     #
     # # kp_arr.append(s)
