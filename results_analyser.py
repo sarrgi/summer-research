@@ -73,6 +73,14 @@ if __name__ == "__main__":
     print("Knn (1)      :", round(average(knn1), 4))
     print("Knn (3)      :", round(average(knn3), 4))
 
+    # latex printout
+    print(
+    "&\n", round(average(rf), 4),
+    "&\n", round(average(dt), 4),
+    "&\n", round(average(knn1), 4),
+    "&\n",round(average(knn1), 4),
+    "&\n", sep='', end='')
+
 
 
 
