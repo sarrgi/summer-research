@@ -197,11 +197,11 @@ def compare_results(predictions, actual):
 
 def accuracy(results):
     avg_accuracy = (results[1] / results[0]) * 100
-    print("Average accuracy: %" + str(avg_accuracy))
-    # print("\nClass based accuracies: \n")
-    # for key,value in results[2].items():
-    #     acc = (value[0] / value[1]) * 100
-    #     print(key + " : %" + str(acc))
+    print("Average accuracy:" + str(avg_accuracy), "%.")
+    print("\nClass based accuracies: \n")
+    for key,value in results[2].items():
+        acc = (value[0] / value[1]) * 100
+        print(key + " : %" + str(acc))
 
 
 def find_index(image, center):
@@ -222,13 +222,13 @@ def find_index(image, center):
 
 if __name__ == "__main__":
 
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 2:
         sys.exit("Incorrect parameter amount.")
     k_val = int(sys.argv[1])
-    info_gain_thresh = float(sys.argv[2])
+    # info_gain_thresh = float(sys.argv[2])
 
     print("Running with k:", k_val)
-    print("Running with info thresh:", info_gain_thresh)
+    print("Running with info thresh:", 0.8)
 
     # /vol/grid-solar/sgeusers/sargisfinl/data/bovw_0_color_run/train
     # data/gcp/bovw_0_color_run/train
@@ -265,8 +265,8 @@ if __name__ == "__main__":
 
     # info gain experiments
     ranked_features = info_gain(bovw_train, bovw_test, RandomForestClassifier())
-    bovw_filtered_train = remove_feats(bovw_train, ranked_features, info_gain_thresh)
-    bovw_filtered_test = remove_feats(bovw_test, ranked_features, info_gain_thresh)
+    bovw_filtered_train = remove_feats(bovw_train, ranked_features, 0.8)
+    bovw_filtered_test = remove_feats(bovw_test, ranked_features, 0.8)
 
     print("-----------------------------------------------")
     print('Random forest (Info Gain)')
